@@ -3,7 +3,7 @@
   <img src="https://img.shields.io/badge/STATUS-UNDER%20CONSTRUCTION-orange?style=for-the-badge&logo=construction&logoColor=white" alt="Status Under Construction" />
   <br/><br/>
 
-  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=700&size=40&duration=3000&pause=1000&color=5D4037&center=true&vCenter=true&width=600&lines=BrewTech+LMS+☕;Cooking+Something+Cool...;Under+Active+Development+🚧" alt="Typing SVG" />
+<img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=700&size=30&duration=3000&pause=1000&color=5D4037&center=true&vCenter=true&width=700&lines=BrewTech+LMS+☕;Cooking+Something+Cool...;Under+Active+Development+🚧" alt="Typing SVG" />
 
   <br/>
 
