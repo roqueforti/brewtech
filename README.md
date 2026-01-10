@@ -1,136 +1,155 @@
 <div align="center">
 
-  <img src="public/logo.png" alt="BrewTech Logo" width="100" height="auto" />
-  
-  # ☕ BrewTech LMS
-  
-  **Platform Belajar Barista Interaktif dengan Gamifikasi**
-  
-  [![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
-  [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-  [![Inertia.js](https://img.shields.io/badge/Inertia-9553E9?style=for-the-badge&logo=inertia&logoColor=white)](https://inertiajs.com/)
-  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  <img src="https://img.shields.io/badge/STATUS-UNDER%20CONSTRUCTION-orange?style=for-the-badge&logo=construction&logoColor=white" alt="Status Under Construction" />
+  <br/><br/>
+
+  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=700&size=40&duration=3000&pause=1000&color=5D4037&center=true&vCenter=true&width=600&lines=BrewTech+LMS+☕;Cooking+Something+Cool...;Under+Active+Development+🚧" alt="Typing SVG" />
+
+  <br/>
+
+  <a href="#">
+    <img src="public/logo.png" alt="BrewTech Logo" width="120" height="auto" style="animation: breathe 3s ease-in-out infinite;"/>
+  </a>
+
+  <h3 align="center">✨ Platform Belajar Barista yang Gamified & Interaktif ✨</h3>
+
+  <p align="center" style="background-color: #FFF3E0; border: 2px dashed #FF9800; border-radius: 15px; padding: 15px; width: 80%; color: #E65100;">
+    <b>🚧 PROJECT UNDER CONSTRUCTION 🚧</b><br/>
+    Aplikasi ini sedang dalam pengembangan aktif. Fitur, UI, dan Database mungkin mengalami perubahan signifikan.<br/>
+    <i>Feel free to look around!</i>
+  </p>
+
+  <br/>
 
   <p align="center">
-    <a href="#about">About</a> •
-    <a href="#features">Features</a> •
-    <a href="#tech-stack">Tech Stack</a> •
-    <a href="#installation">Installation</a> •
-    <a href="#screenshots">Screenshots</a>
+    <a href="https://laravel.com">
+      <img src="https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel" />
+    </a>
+    <a href="https://reactjs.org/">
+      <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
+    </a>
+    <a href="https://inertiajs.com/">
+      <img src="https://img.shields.io/badge/Inertia-9553E9?style=for-the-badge&logo=inertia&logoColor=white" alt="Inertia" />
+    </a>
+    <a href="https://www.typescriptlang.org/">
+      <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+    </a>
   </p>
+
+  <br/>
+
+  <p align="center">
+    <a href="#-progress-development">🔨 Progress</a> •
+    <a href="#-sneak-peek-demo">👀 Sneak Peek</a> •
+    <a href="#-fitur-yang-direncanakan">🌟 Fitur</a> •
+    <a href="#-instalasi">🚀 Coba Lokal</a>
+  </p>
+</div>
+
+<br/>
+
+---
+
+## 🔨 Progress Development
+
+Berikut adalah status pengerjaan fitur saat ini:
+
+- [x] **Setup Modern Monolith** (Laravel 11 + Inertia + React)
+- [x] **Autentikasi User** (Login/Register Siswa & Pengajar)
+- [x] **Database Seeding** (Data Dummy Materi V60 & User)
+- [x] **Peserta: Dashboard Gamifikasi** (Level, XP, Badge System)
+- [x] **Peserta: Workshop Interaktif** (Slide materi & Kuis)
+- [ ] **Peserta: Upload Foto Real-time** (Sedang dipoles)
+- [ ] **Pengajar: Dashboard Grading** (Penilaian tugas siswa)
+- [ ] **Integrasi API Mobile** (Persiapan React Native)
+
+---
+
+## 👀 Sneak Peek (Demo)
+
+Meskipun belum 100% jadi, inti dari alur belajar interaktif sudah bisa dicoba!
+
+### 1. The Workshop Experience
+Siswa belajar langkah demi langkah dan mengerjakan kuis interaktif.
+
+<div align="center">
+  <img src="docs/demo-workshop.gif" alt="WIP Workshop" width="80%" style="border-radius: 20px; border: 4px solid #5D4037; opacity: 0.9;" />
+  <p><i>🚧 Work In Progress: Tampilan Workshop V60</i></p>
+</div>
+
+<br/>
+
+### 2. Gamified Profile
+Sistem profil yang melacak pencapaian siswa secara real-time.
+
+<div align="center">
+  <img src="docs/demo-profile.gif" alt="WIP Profile" width="80%" style="border-radius: 20px; border: 4px solid #8D6E63; opacity: 0.9;" />
 </div>
 
 ---
 
-## 📖 About The Project
+## 🌟 Fitur yang Direncanakan
 
-**BrewTech** adalah sistem manajemen pembelajaran (LMS) modern yang dirancang khusus untuk pelatihan barista. Berbeda dengan LMS kaku pada umumnya, BrewTech menggunakan pendekatan **Gamifikasi** dan **Interaktif** untuk membuat proses belajar menyeduh kopi menjadi menyenangkan.
+BrewTech didesain untuk menjadi LMS Vokasi masa depan:
 
-Dibangun dengan arsitektur **Modern Monolith**, aplikasi ini menggabungkan kekuatan backend Laravel yang robust dengan pengalaman pengguna (UX) frontend React yang seamless layaknya Single Page Application (SPA), dijembatani oleh Inertia.js.
-
-### 💡 Key Highlights
-* **Gamified Experience:** Sistem Level, XP, Streak harian, dan Badges (Lencana) untuk memotivasi siswa.
-* **Interactive Workshop:** Panduan langkah-demi-langkah (Step-by-step) visual untuk materi praktek (seperti V60 Manual Brew).
-* **Smart Assessment:** Pre-test & Post-test logis, serta fitur upload foto hasil praktek.
-* **SPK / Decision Support:** Analisis otomatis memberikan rekomendasi ("Rapor") berdasarkan performa siswa.
-
----
-
-## ✨ Features
-
-### 👨‍🎓 Student Area
-- [x] **Dashboard Interaktif:** Melihat progress misi, statistik belajar, dan koleksi badge.
-- [x] **Workshop Player:** - Materi slide interaktif.
-    - Kuis Pre-test & Post-test.
-    - Upload bukti praktek (Foto).
-- [x] **Gamifikasi:**
-    - Perhitungan XP otomatis.
-    - Unlock Badges (Pemula, Barista, Master, dll).
-    - Leaderboard & Streak.
-- [x] **Rapor SPK:** Visualisasi data kemampuan (Radar Chart/Statistik) dan feedback otomatis.
-
-### 👨‍🏫 Instructor Area (Admin)
-- [x] **Monitoring Siswa:** Memantau progress belajar per kelas.
-- [x] **Validasi Tugas:** Review foto hasil praktek siswa.
-- [x] **Manajemen Kelas:** Mengatur materi dan peserta.
+| Modul | Status | Deskripsi |
+| :--- | :---: | :--- |
+| **Gamified UX** | ✅ Beta | Tampilan seperti game untuk meningkatkan retensi siswa. |
+| **Smart SPK** | ✅ Beta | Algoritma rekomendasi berdasarkan nilai pre-test & post-test. |
+| **API Ready** | 🚧 80% | Backend sudah dipersiapkan untuk ekspansi ke Mobile App. |
+| **Live Class** | 🔜 Soon | Integrasi jadwal Zoom/Google Meet untuk sesi tatap muka. |
 
 ---
 
-## 🛠 Tech Stack
+## 🛠️ Tech Stack
 
-Aplikasi ini menggunakan stack **TALL** (Tailwind, Alpine/React, Laravel, Livewire/Inertia) variant modern:
+Kami menggunakan teknologi terkini untuk memastikan skalabilitas.
 
-| Component | Technology | Description |
-| :--- | :--- | :--- |
-| **Backend** | Laravel 10/11 | RESTful architecture, Eloquent ORM, Authentication. |
-| **Frontend** | React.js | Component-based UI, Hooks for state management. |
-| **Bridge** | Inertia.js | Menghubungkan Laravel & React tanpa membuat API ribet. |
-| **Language** | TypeScript | Type-safety untuk frontend yang lebih stabil. |
-| **Styling** | Tailwind CSS | Utility-first CSS framework. |
-| **Icons** | Lucide React | Modern & lightweight icons. |
-| **Database** | MySQL | Relational database management. |
+<div align="center">
+  <br/>
+  <img src="https://skillicons.dev/icons?i=laravel,react,ts,tailwind,mysql,vite&theme=light" alt="Tech Stack Icons" />
+  <br/><br/>
+</div>
 
----
-
-## 📸 Screenshots
-
-| **Dashboard Peserta** | **Workshop Flow** |
-|:---:|:---:|
-| <img src="docs/dashboard.png" alt="Dashboard" width="400"/> | <img src="docs/workshop.png" alt="Workshop" width="400"/> |
-
-| **Profil & Gamifikasi** | **Rapor SPK** |
-|:---:|:---:|
-| <img src="docs/profile.png" alt="Profile" width="400"/> | <img src="docs/spk.png" alt="Rapor" width="400"/> |
+* **Laravel 11** (Backend Core)
+* **React.js + TypeScript** (Interactive Frontend)
+* **Inertia.js** (The Monolith Glue)
+* **Tailwind CSS** (Custom Styling)
 
 ---
 
-## 🚀 Installation & Setup
+## 🚀 Instalasi (Dev Mode)
 
-Ikuti langkah ini untuk menjalankan project di lokal komputer Anda:
+Jika Anda ingin melihat progress atau berkontribusi:
 
-1.  **Clone Repository**
+1.  **Clone Repo**
     ```bash
     git clone [https://github.com/username-anda/brewtech.git](https://github.com/username-anda/brewtech.git)
-    cd brewtech
     ```
 
-2.  **Install Dependencies (Backend & Frontend)**
+2.  **Install Dependencies**
     ```bash
     composer install
     npm install
     ```
 
 3.  **Setup Environment**
-    Salin file `.env.example` menjadi `.env` dan atur database kamu.
     ```bash
     cp .env.example .env
     php artisan key:generate
-    ```
-
-4.  **Database Setup**
-    Pastikan database MySQL sudah dibuat, lalu jalankan migrasi dan seeder (Penting! Untuk data dummy & materi V60).
-    ```bash
     php artisan migrate:fresh --seed
     ```
 
-5.  **Run Application**
-    Jalankan dua terminal terpisah:
+4.  **Jalankan Server**
     ```bash
-    # Terminal 1 (Laravel Server)
     php artisan serve
-
-    # Terminal 2 (Vite/React Bundler)
     npm run dev
     ```
 
-6.  **Akses Aplikasi**
-    Buka `http://127.0.0.1:8000`.
-    * **Akun Siswa:** `alex.morningbatch@student.com` / `password`
-    * **Akun Admin:** `admin@brewtech.com` / `admin123`
-
 ---
 
-## 📂 Project Structure (Modern Monolith)
-
-Struktur folder utama yang digunakan dalam project ini:
+<div align="center">
+  <br/>
+  <p>🚧 <b>Project ini masih dalam tahap pengembangan aktif.</b> 🚧</p>
+  <p>Dibuat dengan ☕ oleh <b>[Nama Anda]</b></p>
+</div>
