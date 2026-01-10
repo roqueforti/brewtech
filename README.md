@@ -1,66 +1,136 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+<div align="center">
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+  <img src="public/logo.png" alt="BrewTech Logo" width="100" height="auto" />
+  
+  # ☕ BrewTech LMS
+  
+  **Platform Belajar Barista Interaktif dengan Gamifikasi**
+  
+  [![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
+  [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+  [![Inertia.js](https://img.shields.io/badge/Inertia-9553E9?style=for-the-badge&logo=inertia&logoColor=white)](https://inertiajs.com/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-## About Laravel
+  <p align="center">
+    <a href="#about">About</a> •
+    <a href="#features">Features</a> •
+    <a href="#tech-stack">Tech Stack</a> •
+    <a href="#installation">Installation</a> •
+    <a href="#screenshots">Screenshots</a>
+  </p>
+</div>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📖 About The Project
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**BrewTech** adalah sistem manajemen pembelajaran (LMS) modern yang dirancang khusus untuk pelatihan barista. Berbeda dengan LMS kaku pada umumnya, BrewTech menggunakan pendekatan **Gamifikasi** dan **Interaktif** untuk membuat proses belajar menyeduh kopi menjadi menyenangkan.
 
-## Learning Laravel
+Dibangun dengan arsitektur **Modern Monolith**, aplikasi ini menggabungkan kekuatan backend Laravel yang robust dengan pengalaman pengguna (UX) frontend React yang seamless layaknya Single Page Application (SPA), dijembatani oleh Inertia.js.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 💡 Key Highlights
+* **Gamified Experience:** Sistem Level, XP, Streak harian, dan Badges (Lencana) untuk memotivasi siswa.
+* **Interactive Workshop:** Panduan langkah-demi-langkah (Step-by-step) visual untuk materi praktek (seperti V60 Manual Brew).
+* **Smart Assessment:** Pre-test & Post-test logis, serta fitur upload foto hasil praktek.
+* **SPK / Decision Support:** Analisis otomatis memberikan rekomendasi ("Rapor") berdasarkan performa siswa.
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## ✨ Features
 
-## Laravel Sponsors
+### 👨‍🎓 Student Area
+- [x] **Dashboard Interaktif:** Melihat progress misi, statistik belajar, dan koleksi badge.
+- [x] **Workshop Player:** - Materi slide interaktif.
+    - Kuis Pre-test & Post-test.
+    - Upload bukti praktek (Foto).
+- [x] **Gamifikasi:**
+    - Perhitungan XP otomatis.
+    - Unlock Badges (Pemula, Barista, Master, dll).
+    - Leaderboard & Streak.
+- [x] **Rapor SPK:** Visualisasi data kemampuan (Radar Chart/Statistik) dan feedback otomatis.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 👨‍🏫 Instructor Area (Admin)
+- [x] **Monitoring Siswa:** Memantau progress belajar per kelas.
+- [x] **Validasi Tugas:** Review foto hasil praktek siswa.
+- [x] **Manajemen Kelas:** Mengatur materi dan peserta.
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## 🛠 Tech Stack
 
-## Contributing
+Aplikasi ini menggunakan stack **TALL** (Tailwind, Alpine/React, Laravel, Livewire/Inertia) variant modern:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| Component | Technology | Description |
+| :--- | :--- | :--- |
+| **Backend** | Laravel 10/11 | RESTful architecture, Eloquent ORM, Authentication. |
+| **Frontend** | React.js | Component-based UI, Hooks for state management. |
+| **Bridge** | Inertia.js | Menghubungkan Laravel & React tanpa membuat API ribet. |
+| **Language** | TypeScript | Type-safety untuk frontend yang lebih stabil. |
+| **Styling** | Tailwind CSS | Utility-first CSS framework. |
+| **Icons** | Lucide React | Modern & lightweight icons. |
+| **Database** | MySQL | Relational database management. |
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 📸 Screenshots
 
-## Security Vulnerabilities
+| **Dashboard Peserta** | **Workshop Flow** |
+|:---:|:---:|
+| <img src="docs/dashboard.png" alt="Dashboard" width="400"/> | <img src="docs/workshop.png" alt="Workshop" width="400"/> |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+| **Profil & Gamifikasi** | **Rapor SPK** |
+|:---:|:---:|
+| <img src="docs/profile.png" alt="Profile" width="400"/> | <img src="docs/spk.png" alt="Rapor" width="400"/> |
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 🚀 Installation & Setup
+
+Ikuti langkah ini untuk menjalankan project di lokal komputer Anda:
+
+1.  **Clone Repository**
+    ```bash
+    git clone [https://github.com/username-anda/brewtech.git](https://github.com/username-anda/brewtech.git)
+    cd brewtech
+    ```
+
+2.  **Install Dependencies (Backend & Frontend)**
+    ```bash
+    composer install
+    npm install
+    ```
+
+3.  **Setup Environment**
+    Salin file `.env.example` menjadi `.env` dan atur database kamu.
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
+
+4.  **Database Setup**
+    Pastikan database MySQL sudah dibuat, lalu jalankan migrasi dan seeder (Penting! Untuk data dummy & materi V60).
+    ```bash
+    php artisan migrate:fresh --seed
+    ```
+
+5.  **Run Application**
+    Jalankan dua terminal terpisah:
+    ```bash
+    # Terminal 1 (Laravel Server)
+    php artisan serve
+
+    # Terminal 2 (Vite/React Bundler)
+    npm run dev
+    ```
+
+6.  **Akses Aplikasi**
+    Buka `http://127.0.0.1:8000`.
+    * **Akun Siswa:** `alex.morningbatch@student.com` / `password`
+    * **Akun Admin:** `admin@brewtech.com` / `admin123`
+
+---
+
+## 📂 Project Structure (Modern Monolith)
+
+Struktur folder utama yang digunakan dalam project ini:
