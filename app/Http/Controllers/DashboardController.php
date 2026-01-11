@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\Workshop; // Pastikan Import Model Workshop
+use App\Models\Workshop;
 use App\Models\StudentSpkResult;
-use App\Models\StudentWorkshopProgress; // Import Progress
+use App\Models\StudentWorkshopProgress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -13,37 +13,30 @@ use Inertia\Inertia;
 class DashboardController extends Controller
 {
     // ==========================================
-    // DASHBOARD PESERTA (SISWA)
+    // 1. DASHBOARD PESERTA (SISWA)
     // ==========================================
     public function indexPeserta()
     {
         $user = Auth::user();
 
-        // 1. Ambil Semua Workshop dari Database
+        // Ambil Semua Workshop & Progress
         $allWorkshops = Workshop::all();
-
-        // 2. Format Data agar sesuai dengan tampilan React
+        
         $formattedWorkshops = $allWorkshops->map(function ($ws) use ($user) {
-            
-            // Cek apakah siswa sudah punya progress di workshop ini?
             $progress = StudentWorkshopProgress::where('user_id', $user->id)
                         ->where('workshop_id', $ws->id)
                         ->first();
 
-            // Tentukan Status (Locked / Available / Completed)
-            $status = 'locked'; // Default terkunci
+            $status = 'locked'; 
 
-            // ATURAN LOGIKA:
-            // Jika ini Workshop Pertama (V60), dan belum ada progress -> BUKA (Available)
+            // Logika Buka Kunci
             if ($ws->id === 1 && !$progress) {
                 $status = 'available';
-            }
-            // Jika sudah ada record progress
-            elseif ($progress) {
+            } elseif ($progress) {
                 if ($progress->status === 'completed') {
                     $status = 'completed';
                 } else {
-                    $status = 'available'; // in_progress atau available dianggap bisa dimainkan
+                    $status = 'available';
                 }
             }
             
@@ -52,12 +45,12 @@ class DashboardController extends Controller
                 'title' => $ws->title,
                 'subtitle' => $ws->subtitle,
                 'emoji' => $ws->emoji,
-                'status' => $status, // Ini yang menentukan tombol Mulai/Kunci
-                'theme' => $ws->theme, // Warna-warni dari database
+                'status' => $status,
+                'theme' => $ws->theme,
             ];
         });
 
-        // 3. Hitung Statistik untuk Header Dashboard
+        // Statistik
         $stats = [
             'completed' => $formattedWorkshops->where('status', 'completed')->count(),
             'active'    => $formattedWorkshops->where('status', 'available')->count(),
@@ -65,31 +58,84 @@ class DashboardController extends Controller
         ];
 
         return Inertia::render('Peserta/Dashboard', [
-            'auth' => [
-                'user' => $user->load('kelas'), // Load data kelas (Morning/Afternoon)
-            ],
-            'workshops' => $formattedWorkshops, // Kirim data V60 ke sini
+            'auth' => ['user' => $user->load('kelas')],
+            'workshops' => $formattedWorkshops,
             'stats' => $stats
         ]);
     }
 
     // ==========================================
-    // HALAMAN LAINNYA
+    // 2. DASHBOARD PENGAJAR (GURU)
+    // ==========================================
+    public function indexPengajar()
+    {
+        $user = Auth::user();
+
+        // Pastikan hanya instruktur yang akses (Optional security layer)
+        if ($user->role !== 'instructor' && $user->role !== 'admin') {
+             // return redirect()->route('dashboard.peserta'); // Opsional redirect
+        }
+
+        // Ambil Data Submission (Tugas Masuk)
+        $submissions = StudentWorkshopProgress::with(['user', 'workshop'])
+            ->whereNotNull('photo_url') // Hanya yang sudah setor foto
+            ->orderBy('updated_at', 'desc')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'student_name' => $item->user->name,
+                    'student_class' => $item->user->kelas->nama ?? 'Regular',
+                    'workshop_title' => $item->workshop->title,
+                    'photo_url' => $item->photo_url,
+                    'status' => $item->status, // pending, completed, rejected
+                    'submitted_at' => $item->updated_at->diffForHumans(),
+                ];
+            });
+
+        // Statistik Pengajar
+        $stats = [
+            'total_students' => User::where('role', 'student')->count(),
+            'pending_reviews' => $submissions->where('status', 'pending')->count(),
+            'completed_workshops' => $submissions->where('status', 'completed')->count(),
+        ];
+
+        return Inertia::render('Pengajar/Dashboard', [
+            'auth' => ['user' => $user],
+            'submissions' => $submissions,
+            'stats' => $stats
+        ]);
+    }
+
+    // Aksi Penilaian (Grading)
+    public function gradeSubmission(Request $request)
+    {
+        $request->validate([
+            'submission_id' => 'required|exists:student_workshop_progresses,id',
+            'status' => 'required|in:completed,rejected',
+        ]);
+
+        $progress = StudentWorkshopProgress::find($request->submission_id);
+        $progress->status = $request->status;
+        $progress->save();
+
+        return redirect()->back()->with('message', 'Status tugas berhasil diperbarui!');
+    }
+
+    // ==========================================
+    // 3. FITUR PENDUKUNG PESERTA
     // ==========================================
     
-    // Halaman Workshop Player (Redirect ke Controller Workshop khusus)
     public function workshopFlow()
     {
         return redirect()->route('workshop.play', ['id' => 1]);
     }
 
-    // Halaman Rapor / Nilai SPK
     public function nilaiSpk()
     {
         $user = Auth::user();
         $spk = StudentSpkResult::where('user_id', $user->id)->first();
 
-        // Persona Logic (Sama seperti sebelumnya)
         $persona = 'The Balanced Barista';
         $badge = '⚖️';
         
@@ -103,7 +149,7 @@ class DashboardController extends Controller
             }
         }
 
-        // Data Mockup Riwayat Workshop (Nanti bisa diganti DB juga)
+        // Mockup Data Recap (bisa diganti real DB)
         $workshopRecap = [
             [
                 'id' => 1,
@@ -131,44 +177,37 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // 1. Ambil Data Progress Workshop (Real dari DB)
+        // Ambil Data Real
         $workshopProgress = StudentWorkshopProgress::where('user_id', $user->id)
-                            ->with('workshop') // Eager load workshop detail
+                            ->with('workshop')
                             ->get();
 
-        // 2. Hitung Statistik
         $completedCount = $workshopProgress->where('status', 'completed')->count();
         $totalWorkshops = Workshop::count();
         
-        // Logika Level & XP Sederhana
-        // Setiap workshop selesai = 500 XP
-        // Setiap pretest/posttest = skornya jadi XP
+        // Hitung XP
         $xp = 0;
         foreach($workshopProgress as $prog) {
             if($prog->status == 'completed') $xp += 500;
             $xp += ($prog->pretest_score ?? 0);
             $xp += ($prog->posttest_score ?? 0);
         }
-        
-        // Level naik setiap 1000 XP
         $level = 1 + floor($xp / 1000);
 
-        // 3. Format Data untuk Frontend
+        // Format List
         $formattedProgress = Workshop::all()->map(function($ws) use ($workshopProgress) {
             $myProg = $workshopProgress->where('workshop_id', $ws->id)->first();
-            
             $status = 'Terkunci';
             $percent = 0;
 
             if ($ws->id == 1 && !$myProg) {
-                $status = 'Sedang Belajar'; // Workshop pertama otomatis terbuka
+                $status = 'Sedang Belajar';
             } elseif ($myProg) {
                 if ($myProg->status == 'completed') {
                     $status = 'Selesai';
                     $percent = 100;
                 } else {
                     $status = 'Sedang Belajar';
-                    // Hitung % kasar: Pretest=30%, Praktikum=60%, Posttest=90%, Foto=100%
                     if ($myProg->pretest_score !== null) $percent = 30;
                     if ($myProg->praktikum_completed) $percent = 60;
                     if ($myProg->posttest_score !== null) $percent = 90;
@@ -182,44 +221,14 @@ class DashboardController extends Controller
             ];
         });
 
-        // 4. Data Achievements (Logika Sederhana)
+        // Achievements Logic
         $achievements = [
-            [
-                'id' => 1, 
-                'title' => 'Pemula', 
-                'emoji' => '🌱', 
-                'unlocked' => true // Semua user dapat ini
-            ],
-            [
-                'id' => 2, 
-                'title' => 'Rajin', 
-                'emoji' => '📚', 
-                'unlocked' => $workshopProgress->count() > 0 // Dapat jika sudah mulai workshop
-            ],
-            [
-                'id' => 3, 
-                'title' => 'Barista', 
-                'emoji' => '☕', 
-                'unlocked' => $completedCount >= 1 // Dapat jika selesai 1 workshop
-            ],
-            [
-                'id' => 4, 
-                'title' => 'Master', 
-                'emoji' => '👨‍🍳', 
-                'unlocked' => $completedCount >= 3
-            ],
-            [
-                'id' => 5, 
-                'title' => 'Sempurna', 
-                'emoji' => '💯', 
-                'unlocked' => $workshopProgress->where('posttest_score', 100)->count() > 0
-            ],
-            [
-                'id' => 6, 
-                'title' => 'Bintang', 
-                'emoji' => '⭐', 
-                'unlocked' => $level >= 5
-            ],
+            ['id' => 1, 'title' => 'Pemula', 'emoji' => '🌱', 'unlocked' => true],
+            ['id' => 2, 'title' => 'Rajin', 'emoji' => '📚', 'unlocked' => $workshopProgress->count() > 0],
+            ['id' => 3, 'title' => 'Barista', 'emoji' => '☕', 'unlocked' => $completedCount >= 1],
+            ['id' => 4, 'title' => 'Master', 'emoji' => '👨‍🍳', 'unlocked' => $completedCount >= 3],
+            ['id' => 5, 'title' => 'Sempurna', 'emoji' => '💯', 'unlocked' => $workshopProgress->where('posttest_score', 100)->count() > 0],
+            ['id' => 6, 'title' => 'Bintang', 'emoji' => '⭐', 'unlocked' => $level >= 5],
         ];
 
         return Inertia::render('Peserta/ProfilPeserta', [
@@ -227,7 +236,7 @@ class DashboardController extends Controller
             'stats' => [
                 'level' => $level,
                 'xp' => $xp,
-                'streak' => 1, // Logic streak butuh tabel log harian, sementara hardcode 1
+                'streak' => 1,
                 'completed_workshops' => $completedCount,
                 'total_workshops' => $totalWorkshops
             ],
@@ -235,5 +244,4 @@ class DashboardController extends Controller
             'progress_list' => $formattedProgress
         ]);
     }
-
 }

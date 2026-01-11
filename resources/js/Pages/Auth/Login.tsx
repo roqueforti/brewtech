@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ArrowRight, Lock, Eye, EyeOff, LogIn, Star } from 'lucide-react';
-import { router } from '@inertiajs/react';
+import { ArrowRight, Lock, Eye, EyeOff, Check, UserPlus, HelpCircle, Star } from 'lucide-react'; // Tambah Icon
+import { router, Link } from '@inertiajs/react'; // Tambah Link
 
-// --- TIPE DATA (Agar Coding Lebih Aman/Rapi) ---
+// --- TIPE DATA ---
 interface Student {
   id: number;
   name: string;
@@ -24,10 +24,9 @@ interface KelasData {
   theme: KelasTheme;
 }
 
-// Props dari Laravel (StudentAuthController) + Errors dari Inertia
 interface LoginProps {
   kelasFromDB: KelasData[];
-  errors: any; // <--- Tambahkan ini untuk menangkap error dari Server
+  errors: any;
 }
 
 export default function Login({ kelasFromDB, errors }: LoginProps) {
@@ -41,7 +40,8 @@ export default function Login({ kelasFromDB, errors }: LoginProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [localError, setLocalError] = useState(''); // Error validasi lokal
+  const [remember, setRemember] = useState(false); // <--- State Ingat Saya
+  const [localError, setLocalError] = useState('');
 
   // --- TRANSFORMASI DATA ---
   const kelasList = Array.isArray(kelasFromDB) ? kelasFromDB.map((k) => ({
@@ -67,12 +67,14 @@ export default function Login({ kelasFromDB, errors }: LoginProps) {
     }
   };
 
-  const handleInstructorLogin = () => {
+  const handleInstructorLogin = (e: React.FormEvent) => {
+    e.preventDefault(); // Mencegah reload form default
     if(!email || !password) {
         setLocalError("Email & Password harus diisi!");
         return;
     }
-    router.post('/login', { email, password });
+    // Kirim data login beserta state remember
+    router.post('/pengajar/login', { email, password, remember });
   };
 
   return (
@@ -125,6 +127,7 @@ export default function Login({ kelasFromDB, errors }: LoginProps) {
         <div className="bg-[#FFFAF0] rounded-[2.5rem] p-6 md:p-8 border-[6px] border-[#8D6E63] shadow-[0_10px_0_rgba(93,64,55,0.2)]">
           
           {mode === 'student' ? (
+            // --- MODE SISWA (Tidak berubah) ---
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               
               <div className="text-center mb-6">
@@ -132,7 +135,6 @@ export default function Login({ kelasFromDB, errors }: LoginProps) {
                 <p className="text-[#8D6E63] font-bold mt-1">Ayo pilih kelasmu hari ini</p>
               </div>
 
-              {/* STEP 1: PILIH KELAS */}
               {!selectedKelas ? (
                 <div className="space-y-4">
                     {kelasList.length > 0 ? kelasList.map((k) => (
@@ -155,23 +157,21 @@ export default function Login({ kelasFromDB, errors }: LoginProps) {
                     )}
                 </div>
               ) : (
-                /* STEP 2: PILIH NAMA */
                 <div className="space-y-6">
-                  {/* Header Kelas Terpilih */}
                   <div className={`flex items-center justify-between p-4 rounded-3xl border-[4px] bg-white ${activeClass?.theme.border} ${activeClass?.theme.text}`}>
-                     <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3">
                         <span className="text-4xl">{activeClass?.emoji}</span>
                         <div className="text-left">
                             <p className="text-xs font-black opacity-60 uppercase">KELAS:</p>
                             <h3 className="text-xl font-black leading-none">{activeClass?.nama}</h3>
                         </div>
-                     </div>
-                     <button 
+                      </div>
+                      <button 
                         onClick={() => setSelectedKelas(null)}
                         className="text-sm font-bold underline decoration-4 hover:scale-110 transition-transform"
-                     >
-                       Ganti
-                     </button>
+                      >
+                        Ganti
+                      </button>
                   </div>
                   
                   <div className="text-center">
@@ -196,10 +196,9 @@ export default function Login({ kelasFromDB, errors }: LoginProps) {
                     </div>
                   </div>
 
-                  {/* ERROR MESSAGE DARI SERVER (Baru Ditambahkan) */}
                   {(errors.login_error || errors.user_id) && (
                     <div className="p-3 bg-red-100 border-[3px] border-red-300 rounded-2xl text-red-700 font-bold text-center animate-shake">
-                       🚨 {errors.login_error || errors.user_id}
+                        🚨 {errors.login_error || errors.user_id}
                     </div>
                   )}
 
@@ -218,8 +217,9 @@ export default function Login({ kelasFromDB, errors }: LoginProps) {
               )}
             </div>
           ) : (
+            // --- MODE PENGAJAR (Diupdate) ---
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {/* LOGIN PENGAJAR */}
+              
               <div className="text-center mb-6">
                 <div className="inline-block p-3 bg-red-100 rounded-full border-4 border-red-200 mb-2">
                     <Lock className="w-8 h-8 text-[#C62828]" strokeWidth={3} />
@@ -228,7 +228,8 @@ export default function Login({ kelasFromDB, errors }: LoginProps) {
                 <p className="text-[#8D6E63] font-bold">Masukkan akun admin ya!</p>
               </div>
 
-              <div className="space-y-4">
+              <form onSubmit={handleInstructorLogin} className="space-y-4">
+                {/* Input Email */}
                 <div>
                     <label className="block text-lg font-black text-[#5D4037] mb-1 ml-2">Email</label>
                     <input
@@ -240,6 +241,7 @@ export default function Login({ kelasFromDB, errors }: LoginProps) {
                     />
                 </div>
 
+                {/* Input Password */}
                 <div>
                   <label className="block text-lg font-black text-[#5D4037] mb-1 ml-2">Password</label>
                   <div className="relative">
@@ -260,20 +262,60 @@ export default function Login({ kelasFromDB, errors }: LoginProps) {
                   </div>
                 </div>
 
-                {/* ERROR MESSAGE (Gabungan Local & Server) */}
+                {/* --- FITUR BARU: Ingat Saya & Lupa Password --- */}
+                <div className="flex items-center justify-between px-1">
+                    {/* Custom Checkbox Ingat Saya */}
+                    <button 
+                        type="button"
+                        onClick={() => setRemember(!remember)}
+                        className="flex items-center gap-2 group"
+                    >
+                        <div className={`w-6 h-6 rounded-lg border-[3px] flex items-center justify-center transition-all ${
+                            remember 
+                            ? 'bg-[#66BB6A] border-[#388E3C] text-white' 
+                            : 'bg-white border-[#D7CCC8] group-hover:border-[#8D6E63]'
+                        }`}>
+                            {remember && <Check size={16} strokeWidth={4} />}
+                        </div>
+                        <span className="text-[#8D6E63] font-bold text-sm group-hover:text-[#5D4037]">Ingat Saya</span>
+                    </button>
+
+                    {/* Link Lupa Password */}
+                    <Link 
+                        href="/forgot-password" 
+                        className="flex items-center gap-1 text-[#E57373] hover:text-[#C62828] font-bold text-sm transition-colors"
+                    >
+                        <HelpCircle size={16} /> Lupa Password?
+                    </Link>
+                </div>
+
+                {/* Error Message */}
                 {(localError || errors.email || errors.password) && (
                   <div className="p-3 bg-red-100 border-[3px] border-red-300 rounded-2xl text-red-700 font-bold text-center animate-pulse">
                     🚨 {localError || errors.email || errors.password}
                   </div>
                 )}
 
+                {/* Tombol Login */}
                 <button
-                  onClick={handleInstructorLogin}
+                  type="submit"
                   className="w-full py-5 mt-2 rounded-3xl text-2xl font-black text-white border-b-[8px] border-x-4 border-t-4 transition-all active:scale-95 active:border-b-4 bg-[#EF5350] border-[#C62828] hover:bg-[#E53935]"
                 >
                   BUKA PINTU 🔑
                 </button>
-              </div>
+
+                {/* --- FITUR BARU: Buat Akun --- */}
+                <div className="text-center mt-6 border-t-2 border-dashed border-[#D7CCC8] pt-4">
+                    <p className="text-[#8D6E63] font-bold text-sm mb-2">Belum punya akun admin?</p>
+                    <Link 
+                        href="/register" 
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl border-[3px] border-[#8D6E63] text-[#5D4037] font-black hover:bg-[#8D6E63] hover:text-white transition-all active:scale-95"
+                    >
+                        <UserPlus size={20} /> BUAT AKUN BARU
+                    </Link>
+                </div>
+
+              </form>
             </div>
           )}
         </div>

@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentAuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\WorkshopController; // Pastikan controller ini ada/dibuat
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -34,19 +35,34 @@ Route::post('/login/student', [StudentAuthController::class, 'login'])
     ->middleware('guest')
     ->name('login.student');
 
+// Proses Logout
+Route::post('/logout', function (\Illuminate\Http\Request $request) {
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    return redirect('/');
+})->name('logout');
+
 // =========================================================================
 // 3. AREA PESERTA (Wajib Login sebagai Student/User)
 // =========================================================================
 Route::middleware(['auth', 'verified'])->prefix('peserta')->group(function () {
 
-    // Dashboard Peserta
-    // Menggunakan Controller agar data Workshop, Statistik, dan User terkirim lengkap
-    Route::get('/dashboard', [DashboardController::class, 'indexPeserta'])
-        ->name('dashboard.peserta');
+    // --- Dashboard & Profil ---
+    Route::get('/dashboard', [DashboardController::class, 'indexPeserta'])->name('dashboard.peserta');
+    Route::get('/profil', [DashboardController::class, 'profil'])->name('profil.peserta');
+    
+    // --- Rapor & SPK ---
+    Route::get('/nilai-spk', [DashboardController::class, 'nilaiSpk'])->name('nilai.spk');
 
-    // Halaman Alur Workshop (Materi)
-    // Ganti route workshop-flow yang lama dengan ini:
+    // --- Workshop Flow & API (Player) ---
+    // Redirector sederhana
+    Route::get('/workshop-flow', [DashboardController::class, 'workshopFlow'])->name('workshop.flow');
+    
+    // Logika Player (Mengarah ke WorkshopController)
     Route::get('/workshop/{id}', [WorkshopController::class, 'show'])->name('workshop.play');
+    
+    // API Endpoints untuk Workshop Interaktif
     Route::get('/api/workshop/{id}/steps', [WorkshopController::class, 'getSteps']);
     Route::get('/api/workshop/{id}/quiz/{type}', [WorkshopController::class, 'getQuiz']);
     Route::post('/api/workshop/{id}/quiz/submit', [WorkshopController::class, 'submitQuiz']);
@@ -59,12 +75,13 @@ Route::middleware(['auth', 'verified'])->prefix('peserta')->group(function () {
 // =========================================================================
 Route::middleware(['auth', 'verified'])->prefix('pengajar')->group(function () {
 
-    // Dashboard Pengajar
-    Route::get('/dashboard', function () {
-        return Inertia::render('Pengajar/Dashboard');
-    })->name('dashboard.pengajar');
+    // Dashboard Utama Pengajar (Statistik & Grading)
+    Route::get('/dashboard', [DashboardController::class, 'indexPengajar'])->name('dashboard.pengajar');
+    
+    // Aksi Grading (ACC/Tolak Tugas)
+    Route::post('/grade', [DashboardController::class, 'gradeSubmission'])->name('pengajar.grade');
 
-    // Menu Manajemen & Analisis
+    // Menu Manajemen Lainnya (Placeholder Inertia)
     Route::get('/analisis-spk', function () {
         return Inertia::render('Pengajar/AnalisisSPK');
     })->name('analisis.spk');
@@ -82,27 +99,17 @@ Route::middleware(['auth', 'verified'])->prefix('pengajar')->group(function () {
     })->name('manajemen.peserta');
 });
 
+// =========================================================================
+// 5. REDIRECT UMUM
+// =========================================================================
+// Jika akses /dashboard, cek role lalu lempar ke tempat yang benar
 Route::get('/dashboard', function () {
+    $user = Auth::user();
+    if ($user->role === 'instructor') {
+        return redirect()->route('dashboard.pengajar');
+    }
     return redirect()->route('dashboard.peserta');
 })->middleware(['auth', 'verified']);
 
-Route::middleware(['auth', 'verified'])->prefix('peserta')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'indexPeserta'])->name('dashboard.peserta');
-    Route::get('/workshop-flow', [DashboardController::class, 'workshopFlow'])->name('workshop.flow');
-    Route::get('/nilai-spk', [DashboardController::class, 'nilaiSpk'])->name('nilai.spk');
-    Route::get('/profil', [DashboardController::class, 'profil'])->name('profil.peserta');
-});
-
-Route::post('/logout', function (\Illuminate\Http\Request $request) {
-    Auth::logout();
-
-    $request->session()->invalidate();
-
-    $request->session()->regenerateToken();
-
-    return redirect('/');
-})->name('logout');
-// =========================================================================
-// 5. LOAD AUTH ROUTES BAWAAN (Logout, Reset Password, dll)
-// =========================================================================
+// Load routes auth default (jika diperlukan untuk fitur reset password dsb)
 require __DIR__ . '/auth.php';

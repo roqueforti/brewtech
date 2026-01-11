@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use Illuminate\Support\Facades\Route;
 // ... imports lainnya
 
 Route::middleware('guest')->group(function () {
@@ -17,4 +19,13 @@ Route::middleware('guest')->group(function () {
     // ... dst
 });
 
+Route::middleware('guest')->group(function () {
+    // 1. Rute untuk MENAMPILKAN halaman login (GET)
+    Route::get('pengajar/login', [AuthenticatedSessionController::class, 'create'])
+        ->name('pengajar.login');
+
+    // 2. Rute untuk MEMPROSES data login (POST) -> INI YANG DICARI ERROR TADI
+    Route::post('pengajar/login', [AuthenticatedSessionController::class, 'store'])
+        ->name('pengajar.login.store');
+});
 // ...
