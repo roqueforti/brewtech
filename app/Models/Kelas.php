@@ -4,29 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Kelas extends Model
 {
     use HasFactory;
+    
+    protected $table = 'kelas'; 
+    protected $fillable = ['nama', 'emoji', 'pelatih', 'periode', 'deskripsi', 'theme', 'status'];
 
-    protected $table = 'kelas';
-
-    protected $fillable = [
-        'nama',
-        'emoji',
-        'pelatih',
-        'theme',
-    ];
-
-    // Casting JSON ke Array otomatis saat diambil dari DB
-    protected $casts = [
-        'theme' => 'array',
-    ];
-
-    // Relasi: Satu Kelas memiliki banyak Siswa
-    public function students(): HasMany
+    // 👇 FUNGSI INI WAJIB ADA (KARENADIPANGGIL DI CONTROLLER)
+    public function students()
     {
-        return $this->hasMany(User::class, 'kelas_id');
+        // Menghubungkan Kelas ke User (role student)
+        return $this->hasMany(User::class, 'kelas_id')->where('role', 'student');
+    }
+
+    public function workshops()
+    {
+        // Menghubungkan Kelas ke Workshop
+        return $this->hasMany(Workshop::class, 'kelas_id');
     }
 }

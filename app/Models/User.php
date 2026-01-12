@@ -15,8 +15,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',      // Tambahan
-        'kelas_id',  // Tambahan
+        'role', // pastikan ada kolom role (admin/student/instructor)
+        'kelas_id', // TAMBAHAN
+        'pre_test_score', // TAMBAHAN
+        'post_test_score', // TAMBAHAN
+        'status_pkl', // TAMBAHAN
     ];
 
     protected $hidden = [

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Workshop;
 use App\Models\StudentSpkResult;
 use App\Models\StudentWorkshopProgress;
+use App\Models\Kelas; // ✅ Pastikan Model Kelas ter-import
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -71,14 +72,14 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Pastikan hanya instruktur yang akses (Optional security layer)
+        // Pastikan hanya instruktur yang akses
         if ($user->role !== 'instructor' && $user->role !== 'admin') {
-             // return redirect()->route('dashboard.peserta'); // Opsional redirect
+             // return redirect()->route('dashboard.peserta');
         }
 
         // Ambil Data Submission (Tugas Masuk)
         $submissions = StudentWorkshopProgress::with(['user', 'workshop'])
-            ->whereNotNull('photo_url') // Hanya yang sudah setor foto
+            ->whereNotNull('photo_url')
             ->orderBy('updated_at', 'desc')
             ->get()
             ->map(function ($item) {
@@ -149,7 +150,7 @@ class DashboardController extends Controller
             }
         }
 
-        // Mockup Data Recap (bisa diganti real DB)
+        // Mockup Data Recap
         $workshopRecap = [
             [
                 'id' => 1,
@@ -243,5 +244,172 @@ class DashboardController extends Controller
             'achievements' => $achievements,
             'progress_list' => $formattedProgress
         ]);
+    }
+
+    // ==========================================
+    // 4. MANAJEMEN KELAS (CRUD LENGKAP) ✅
+    // ==========================================
+    
+    // READ: Tampilkan daftar kelas
+    public function kelas()
+    {
+        $user = Auth::user();
+
+        // Ambil data kelas beserta hitungan siswa dan workshop
+        $dataKelas = Kelas::withCount(['students', 'workshops'])
+                          ->orderBy('created_at', 'desc')
+                          ->get();
+
+        return Inertia::render('Pengajar/ManajemenKelas', [
+            'auth' => ['user' => $user],
+            'kelas_list' => $dataKelas // Data dikirim ke React
+        ]);
+    }
+
+    // CREATE: Simpan kelas baru
+    public function storeKelas(Request $request)
+    {
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'pelatih' => 'required|string|max:255',
+            'periode' => 'required|string',
+            'theme' => 'required|string',
+        ]);
+
+        Kelas::create([
+            'nama' => $request->nama,
+            'pelatih' => $request->pelatih,
+            'periode' => $request->periode,
+            'deskripsi' => $request->deskripsi,
+            'theme' => $request->theme,
+            'status' => 'Aktif',
+            'emoji' => '🎓' // Default emoji jika tidak diinput
+        ]);
+
+        return redirect()->back()->with('message', 'Kelas berhasil dibuat!');
+    }
+
+    // UPDATE: Edit kelas
+    public function updateKelas(Request $request, $id)
+    {
+        $kelas = Kelas::findOrFail($id);
+        
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'pelatih' => 'required|string|max:255',
+            'periode' => 'required|string',
+        ]);
+
+        $kelas->update([
+            'nama' => $request->nama,
+            'pelatih' => $request->pelatih,
+            'periode' => $request->periode,
+            'deskripsi' => $request->deskripsi,
+            // Theme bisa diupdate jika dikirim, jika tidak pakai yang lama
+            'theme' => $request->theme ?? $kelas->theme, 
+        ]);
+
+        return redirect()->back()->with('message', 'Kelas berhasil diperbarui!');
+    }
+
+    // DELETE: Hapus kelas
+    public function destroyKelas($id)
+    {
+        $kelas = Kelas::findOrFail($id);
+        $kelas->delete();
+
+        return redirect()->back()->with('message', 'Kelas berhasil dihapus!');
+    }
+
+// ==========================================
+    // 5. MANAJEMEN PESERTA (SISWA)
+    // ==========================================
+    
+    // READ: Tampilkan Halaman
+    public function siswa()
+    {
+        $user = Auth::user();
+
+        // Ambil data siswa
+        $students = User::where('role', 'student')
+                        ->with('kelas')
+                        ->orderBy('created_at', 'desc')
+                        ->get()
+                        ->map(function ($student) {
+                            return [
+                                'id' => $student->id,
+                                'name' => $student->name,
+                                'email' => $student->email,
+                                'kelas_id' => $student->kelas_id,
+                                'kelas_nama' => $student->kelas->nama ?? 'Belum ada kelas',
+                                'kelas_color' => $student->kelas->theme ?? 'gray', // Ambil tema kelas
+                                'status_pkl' => $student->status_pkl,
+                                'nilai_pre' => $student->pre_test_score ?? 0,
+                                'nilai_post' => $student->post_test_score ?? 0,
+                                'joined_at' => $student->created_at->format('Y-m-d'),
+                            ];
+                        });
+
+        // Ambil data kelas untuk Dropdown & Filter
+        $kelasList = Kelas::select('id', 'nama', 'pelatih', 'theme')->get();
+
+        return Inertia::render('Pengajar/ManajemenPeserta', [
+            'auth' => ['user' => $user],
+            'students' => $students,
+            'kelas_list' => $kelasList // Kirim data kelas ke React
+        ]);
+    }
+
+    // CREATE: Tambah Siswa Baru
+    public function storeSiswa(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'kelas_id' => 'required|exists:kelas,id',
+        ]);
+
+        User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt('password'), // Default password
+            'role' => 'student',
+            'kelas_id' => $request->kelas_id,
+            'status_pkl' => 'dalam_pelatihan',
+            'pre_test_score' => 0,
+            'post_test_score' => 0,
+        ]);
+
+        return redirect()->back()->with('message', 'Siswa berhasil ditambahkan!');
+    }
+
+    // UPDATE: Edit Siswa
+    public function updateSiswa(Request $request, $id)
+    {
+        $student = User::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string',
+            'email' => 'required|email|unique:users,email,'.$id,
+            'kelas_id' => 'required|exists:kelas,id',
+            'status_pkl' => 'required'
+        ]);
+
+        $student->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'kelas_id' => $request->kelas_id,
+            'status_pkl' => $request->status_pkl,
+        ]);
+
+        return redirect()->back()->with('message', 'Data siswa diperbarui!');
+    }
+
+    // DELETE: Hapus Siswa
+    public function destroySiswa($id)
+    {
+        $student = User::findOrFail($id);
+        $student->delete();
+        return redirect()->back()->with('message', 'Siswa dihapus!');
     }
 }
