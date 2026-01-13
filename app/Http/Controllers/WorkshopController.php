@@ -2,129 +2,86 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Workshop;
-use App\Models\StudentWorkshopProgress;
-use App\Models\Question;
-use App\Models\PraktikumStep;
+use App\Models\Kelas; // ✅ Pakai Model 'Kelas'
+use App\Models\Module;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class WorkshopController extends Controller
 {
-    // Halaman Utama Workshop Player
-    public function show($id)
+    public function index()
+{
+    // ❌ SALAH: 'workshops' tidak ada di model Kelas
+    // $dataKelas = Kelas::withCount(['students', 'workshops']) 
+
+    // ✅ BENAR: Gunakan 'modules' sesuai nama fungsi di Model Kelas
+    $dataKelas = Kelas::withCount(['students', 'modules'])
+        ->latest()
+        ->get();
+
+    return Inertia::render('Pengajar/ManajemenKelas', [
+        'classrooms' => $dataKelas
+    ]);
+}
+
+    public function store(Request $request)
     {
-        $user = Auth::user();
-        $workshop = Workshop::findOrFail($id);
-        
-        // Ambil atau Buat Progress Siswa
-        $progress = StudentWorkshopProgress::firstOrCreate(
-            ['user_id' => $user->id, 'workshop_id' => $id],
-            ['status' => 'in_progress']
-        );
-
-        // Tentukan "State" saat ini (User sedang di tahap mana?)
-        $currentState = 'INTRO';
-        if ($progress->pretest_score !== null) $currentState = 'PRAKTIKUM';
-        if ($progress->praktikum_completed) $currentState = 'POSTTEST';
-        if ($progress->posttest_score !== null) $currentState = 'PHOTO';
-        if ($progress->photo_submission_url !== null) $currentState = 'COMPLETED';
-
-        return Inertia::render('Peserta/WorkshopFlow', [
-            'workshop' => $workshop,
-            'progress' => $progress,
-            'initialState' => $currentState
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
         ]);
+
+        Kelas::create([
+            'name' => $validated['name'],
+            'description' => $validated['description'],
+        ]);
+
+        return redirect()->back()->with('success', 'Kelas berhasil dibuat!');
     }
 
-    // Ambil Data Langkah-Langkah Praktikum
-    public function getSteps($id)
+    public function destroy($id)
     {
-        return PraktikumStep::where('workshop_id', $id)->orderBy('step_order')->get();
+        $kelas = Kelas::findOrFail($id);
+        $kelas->delete();
+
+        return redirect()->back()->with('success', 'Kelas berhasil dihapus.');
     }
 
-    // Ambil Soal Kuis (Pretest / Posttest)
-    public function getQuiz($id, $type)
-    {
-        // Security: Cek jika user mencoba akses pretest padahal sudah selesai
-        $user = Auth::user();
-        $progress = StudentWorkshopProgress::where('user_id', $user->id)
-                    ->where('workshop_id', $id)->first();
+    public function show($id)
+{
+    // ✅ Panggil 'modules', JANGAN 'workshops'
+    $kelas = Kelas::with(['modules' => function($query) {
+        $query->orderBy('kelas_module.order', 'asc');
+    }])->findOrFail($id);
+    
+    // ✅ Panggil 'kelas', JANGAN 'workshops'
+    $availableModules = Module::whereDoesntHave('kelas', function($q) use ($id) {
+        $q->where('kelas_id', $id);
+    })->get();
 
-        if ($type == 'pretest' && $progress->pretest_score !== null) {
-             return response()->json(['error' => 'Pre-test sudah dikerjakan!'], 403);
+    return Inertia::render('Pengajar/DetailKelas', [
+        'classroom' => $kelas,
+        'availableModules' => $availableModules
+    ]);
+}
+
+    public function addModule(Request $request, $id)
+    {
+        $kelas = Kelas::findOrFail($id);
+        
+        // Cek duplikasi di tabel pivot
+        if (!$kelas->modules()->where('module_id', $request->module_id)->exists()) {
+            $kelas->modules()->attach($request->module_id);
         }
 
-        return Question::where('workshop_id', $id)->where('type', $type)->get()->map(function($q) {
-            // Sembunyikan kunci jawaban dari frontend!
-            return [
-                'id' => $q->id,
-                'question_text' => $q->question_text,
-                'options' => $q->options,
-                'type' => $q->type
-            ];
-        });
+        return redirect()->back()->with('success', 'Modul berhasil ditambahkan.');
     }
 
-    // Submit Jawaban Kuis
-    public function submitQuiz(Request $request, $id)
+    public function removeModule($kelasId, $moduleId)
     {
-        $answers = $request->answers; // Array [question_id => 'A', ...]
-        $type = $request->type; // 'pretest' atau 'posttest'
-        
-        $score = 0;
-        $total = count($answers);
-        
-        // Hitung Skor
-        foreach ($answers as $qId => $ans) {
-            $question = Question::find($qId);
-            if ($question && $question->correct_answer == $ans) {
-                $score++;
-            }
-        }
-        
-        $finalScore = ($total > 0) ? round(($score / $total) * 100) : 0;
+        $kelas = Kelas::findOrFail($kelasId);
+        $kelas->modules()->detach($moduleId);
 
-        // Simpan ke Database
-        $progress = StudentWorkshopProgress::where('user_id', Auth::id())
-                    ->where('workshop_id', $id)->first();
-
-        if ($type == 'pretest') {
-            $progress->update(['pretest_score' => $finalScore]);
-        } else {
-            $progress->update(['posttest_score' => $finalScore]);
-        }
-
-        return response()->json(['score' => $finalScore]);
-    }
-
-    // Tandai Praktikum Selesai
-    public function completePraktikum($id)
-    {
-        StudentWorkshopProgress::where('user_id', Auth::id())
-            ->where('workshop_id', $id)
-            ->update(['praktikum_completed' => true]);
-            
-        return response()->json(['success' => true]);
-    }
-
-    // Upload Foto Hasil Akhir
-    public function submitPhoto(Request $request, $id)
-    {
-        $request->validate(['photo' => 'required|image|max:5000']); // Max 5MB
-
-        $path = $request->file('photo')->store('submissions', 'public');
-
-        StudentWorkshopProgress::where('user_id', Auth::id())
-            ->where('workshop_id', $id)
-            ->update([
-                'photo_submission_url' => $path,
-                'photo_submitted_at' => now(),
-                'status' => 'completed' // Tandai workshop selesai total
-            ]);
-
-        return redirect()->back();
+        return redirect()->back()->with('success', 'Modul dihapus dari kurikulum.');
     }
 }

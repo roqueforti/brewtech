@@ -3,12 +3,11 @@ import forms from "@tailwindcss/forms";
 
 /** @type {import('tailwindcss').Config} */
 export default {
-    darkMode: "class",
+    darkMode: ["class"],
     content: [
         "./vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php",
         "./storage/framework/views/*.php",
         "./resources/views/**/*.blade.php",
-        // Ubah baris di bawah ini agar mendukung .jsx, .js, .tsx, dan .ts
         "./resources/js/**/*.{js,jsx,ts,tsx}",
     ],
 
@@ -17,7 +16,13 @@ export default {
             fontFamily: {
                 sans: ["Figtree", ...defaultTheme.fontFamily.sans],
             },
+            borderRadius: {
+                lg: "var(--radius)",
+                md: "calc(var(--radius) - 2px)",
+                sm: "calc(var(--radius) - 4px)",
+            },
             colors: {
+                // ✅ PERBAIKAN: Gunakan 'rgb' agar cocok dengan app.css
                 background: "rgb(var(--background) / <alpha-value>)",
                 foreground: "rgb(var(--foreground) / <alpha-value>)",
                 card: {
@@ -26,18 +31,15 @@ export default {
                 },
                 popover: {
                     DEFAULT: "rgb(var(--popover) / <alpha-value>)",
-                    foreground:
-                        "rgb(var(--popover-foreground) / <alpha-value>)",
+                    foreground: "rgb(var(--popover-foreground) / <alpha-value>)",
                 },
                 primary: {
                     DEFAULT: "rgb(var(--primary) / <alpha-value>)",
-                    foreground:
-                        "rgb(var(--primary-foreground) / <alpha-value>)",
+                    foreground: "rgb(var(--primary-foreground) / <alpha-value>)",
                 },
                 secondary: {
                     DEFAULT: "rgb(var(--secondary) / <alpha-value>)",
-                    foreground:
-                        "rgb(var(--secondary-foreground) / <alpha-value>)",
+                    foreground: "rgb(var(--secondary-foreground) / <alpha-value>)",
                 },
                 muted: {
                     DEFAULT: "rgb(var(--muted) / <alpha-value>)",
@@ -49,8 +51,7 @@ export default {
                 },
                 destructive: {
                     DEFAULT: "rgb(var(--destructive) / <alpha-value>)",
-                    foreground:
-                        "rgb(var(--destructive-foreground) / <alpha-value>)",
+                    foreground: "rgb(var(--destructive-foreground) / <alpha-value>)",
                 },
                 border: "rgb(var(--border) / <alpha-value>)",
                 input: "rgb(var(--input) / <alpha-value>)",
@@ -64,25 +65,32 @@ export default {
                 },
                 sidebar: {
                     DEFAULT: "rgb(var(--sidebar) / <alpha-value>)",
-                    foreground:
-                        "rgb(var(--sidebar-foreground) / <alpha-value>)",
+                    foreground: "rgb(var(--sidebar-foreground) / <alpha-value>)",
                     primary: "rgb(var(--sidebar-primary) / <alpha-value>)",
-                    "primary-foreground":
-                        "rgb(var(--sidebar-primary-foreground) / <alpha-value>)",
+                    "primary-foreground": "rgb(var(--sidebar-primary-foreground) / <alpha-value>)",
                     accent: "rgb(var(--sidebar-accent) / <alpha-value>)",
-                    "accent-foreground":
-                        "rgb(var(--sidebar-accent-foreground) / <alpha-value>)",
+                    "accent-foreground": "rgb(var(--sidebar-accent-foreground) / <alpha-value>)",
                     border: "rgb(var(--sidebar-border) / <alpha-value>)",
                     ring: "rgb(var(--sidebar-ring) / <alpha-value>)",
                 },
             },
-            borderRadius: {
-                lg: "var(--radius)",
-                md: "calc(var(--radius) - 2px)",
-                sm: "calc(var(--radius) - 4px)",
+            animation: {
+                marquee: 'marquee 20s linear infinite',
+                steam: 'steam 2s infinite ease-out',
+            },
+            keyframes: {
+                marquee: {
+                    '0%': { transform: 'translateX(100%)' },
+                    '100%': { transform: 'translateX(-100%)' },
+                },
+                steam: {
+                    '0%': { transform: 'translateY(0) scale(1)', opacity: 0 },
+                    '50%': { opacity: 0.8 },
+                    '100%': { transform: 'translateY(-10px) scale(1.5)', opacity: 0 },
+                },
             },
         },
     },
 
-    plugins: [forms],
+    plugins: [forms, require("tailwindcss-animate")],
 };

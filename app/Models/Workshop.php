@@ -15,4 +15,12 @@ class Workshop extends Model
     protected $casts = [
         'theme' => 'array',
     ];
+
+    // Tambahkan relasi ini
+public function modules()
+{
+    return $this->belongsToMany(Module::class, 'module_workshop')
+                ->withPivot('urutan')
+                ->orderBy('pivot_urutan');
+}
 }

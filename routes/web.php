@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\StudentAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WorkshopController; 
@@ -24,7 +24,6 @@ Route::get('/', function () {
 // =========================================================================
 // 2. AUTHENTICATION
 // =========================================================================
-
 Route::get('/login', [StudentAuthController::class, 'showLoginForm'])
     ->middleware('guest')
     ->name('login');
@@ -50,7 +49,7 @@ Route::middleware(['auth', 'verified'])->prefix('peserta')->group(function () {
     Route::get('/workshop-flow', [DashboardController::class, 'workshopFlow'])->name('workshop.flow');
     Route::get('/workshop/{id}', [WorkshopController::class, 'show'])->name('workshop.play');
     
-    // API Endpoints
+    // API Endpoints untuk Workshop
     Route::get('/api/workshop/{id}/steps', [WorkshopController::class, 'getSteps']);
     Route::get('/api/workshop/{id}/quiz/{type}', [WorkshopController::class, 'getQuiz']);
     Route::post('/api/workshop/{id}/quiz/submit', [WorkshopController::class, 'submitQuiz']);
@@ -61,46 +60,44 @@ Route::middleware(['auth', 'verified'])->prefix('peserta')->group(function () {
 // =========================================================================
 // 4. AREA PENGAJAR (Instructor)
 // =========================================================================
-Route::middleware(['auth', 'verified'])->prefix('pengajar')->group(function () {
+Route::middleware(['auth', 'verified', 'role:instructor'])->prefix('pengajar')->group(function () {
 
-    // 1. Dashboard Utama
+    // --- A. DASHBOARD ---
     Route::get('/dashboard', [DashboardController::class, 'indexPengajar'])->name('dashboard.pengajar');
     Route::post('/grade', [DashboardController::class, 'gradeSubmission'])->name('pengajar.grade');
 
-    // 2. Manajemen Kelas (CRUD LENGKAP)
-    // ✅ READ (Tampilkan Halaman) - Ini yang sudah ada
+    // --- B. MANAJEMEN KELAS ---
     Route::get('/kelas', [DashboardController::class, 'kelas'])->name('pengajar.kelas');
-
-    // ✅ CREATE (Simpan Data Baru) - INI YANG HILANG DAN BIKIN ERROR
     Route::post('/kelas', [DashboardController::class, 'storeKelas'])->name('pengajar.kelas.store'); 
-
-    // ✅ UPDATE (Edit Data)
     Route::put('/kelas/{id}', [DashboardController::class, 'updateKelas'])->name('pengajar.kelas.update'); 
-
-    // ✅ DELETE (Hapus Data)
     Route::delete('/kelas/{id}', [DashboardController::class, 'destroyKelas'])->name('pengajar.kelas.destroy');
 
-    // ... (Placeholder routes lain biarkan saja) ...
-    Route::get('/analisis', function () {
-        return Inertia::render('Pengajar/AnalisisSPK', ['auth' => ['user' => Auth::user()]]);
-    })->name('pengajar.analisis');
-
-    Route::get('/siswa', function () {
-        return Inertia::render('Pengajar/ManajemenPeserta', ['auth' => ['user' => Auth::user()]]);
-    })->name('pengajar.siswa');
-
-    Route::get('/modul', function () {
-        return Inertia::render('Pengajar/ManajemenModul', ['auth' => ['user' => Auth::user()]]);
-    })->name('pengajar.modul');
-
+    // --- C. MANAJEMEN SISWA ---
     Route::get('/siswa', [DashboardController::class, 'siswa'])->name('pengajar.siswa');
     Route::post('/siswa', [DashboardController::class, 'storeSiswa'])->name('pengajar.siswa.store');
     Route::put('/siswa/{id}', [DashboardController::class, 'updateSiswa'])->name('pengajar.siswa.update');
     Route::delete('/siswa/{id}', [DashboardController::class, 'destroySiswa'])->name('pengajar.siswa.destroy');
+    // Detail Siswa (Penting untuk melihat grafik & profil lengkap)
+    Route::get('/siswa/{id}', [DashboardController::class, 'showSiswa'])->name('pengajar.siswa.show');
+
+    // --- D. ANALISIS SPK ---
+    // Menggunakan Controller agar data siswa terkirim (Bukan function kosong)
+    Route::get('/analisis', [DashboardController::class, 'analisis'])->name('pengajar.analisis');
+
+    // --- E. BANK MODUL (MANAJEMEN MODUL) ---
+    // Perbaikan: Hapus '/pengajar' di URL karena sudah ada di prefix group
+    Route::get('/modul', [ModuleController::class, 'index'])->name('pengajar.modul.index');
+    Route::post('/modul', [ModuleController::class, 'store'])->name('pengajar.modul.store');
+    Route::put('/modul/{id}', [ModuleController::class, 'update'])->name('pengajar.modul.update');
+    Route::delete('/modul/{id}', [ModuleController::class, 'destroy'])->name('pengajar.modul.destroy');
+    // Tambahkan route ini di bawah route modul lainnya
+    Route::get('/modul/{id}/edit', [ModuleController::class, 'edit'])->name('pengajar.modul.edit');
+    Route::get('/modul/{id}/preview', [ModuleController::class, 'preview'])->name('pengajar.modul.preview');
+
 });
 
 // =========================================================================
-// 5. REDIRECT UMUM
+// 5. REDIRECT UMUM (Role Based)
 // =========================================================================
 Route::get('/dashboard', function () {
     $user = Auth::user();

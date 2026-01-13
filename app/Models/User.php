@@ -20,6 +20,10 @@ class User extends Authenticatable
         'pre_test_score', // TAMBAHAN
         'post_test_score', // TAMBAHAN
         'status_pkl', // TAMBAHAN
+        'phone',
+    'age',
+    'school_grade',
+    'disability',
     ];
 
     protected $hidden = [
@@ -33,7 +37,7 @@ class User extends Authenticatable
     ];
 
     // Relasi: User (Siswa) milik satu Kelas
-    public function kelas(): BelongsTo
+ public function kelas(): BelongsTo
     {
         return $this->belongsTo(Kelas::class, 'kelas_id');
     }
@@ -43,4 +47,29 @@ class User extends Authenticatable
     {
         return $this->role === $role;
     }
+
+    // 2. Relasi ke Progress Workshop (User punya banyak Progress)
+    public function workshopProgress()
+    {
+        return $this->hasMany(StudentWorkshopProgress::class, 'user_id');
+    }
+
+    // 3. Relasi ke Hasil SPK (User punya 1 Hasil SPK)
+    public function spkResult()
+    {
+        return $this->hasOne(StudentSpkResult::class, 'user_id');
+    }
+
+    public function workshops()
+{
+    return $this->belongsToMany(Workshop::class, 'student_workshops')
+                ->withPivot('status', 'score', 'completed_at', 'updated_at')
+                ->withTimestamps();
+}
+
+// Relasi ke Riwayat Aktivitas
+public function activities()
+{
+    return $this->hasMany(StudentActivity::class)->latest();
+}
 }

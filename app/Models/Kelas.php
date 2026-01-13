@@ -8,20 +8,22 @@ use Illuminate\Database\Eloquent\Model;
 class Kelas extends Model
 {
     use HasFactory;
-    
-    protected $table = 'kelas'; 
-    protected $fillable = ['nama', 'emoji', 'pelatih', 'periode', 'deskripsi', 'theme', 'status'];
 
-    // 👇 FUNGSI INI WAJIB ADA (KARENADIPANGGIL DI CONTROLLER)
+    protected $table = 'kelas';
+    protected $guarded = ['id'];
+
+    // ✅ GANTI JADI HAS MANY (Satu Kelas punya Banyak Siswa)
+    // Laravel tidak akan mencari tabel 'kelas_user' lagi, tapi mencari kolom 'kelas_id' di tabel 'users'
     public function students()
     {
-        // Menghubungkan Kelas ke User (role student)
         return $this->hasMany(User::class, 'kelas_id')->where('role', 'student');
     }
 
-    public function workshops()
+    // Relasi ke Kurikulum (Tetap Many-to-Many)
+    public function modules()
     {
-        // Menghubungkan Kelas ke Workshop
-        return $this->hasMany(Workshop::class, 'kelas_id');
+        return $this->belongsToMany(Module::class, 'kelas_module')
+                    ->withPivot('order')
+                    ->withTimestamps();
     }
 }

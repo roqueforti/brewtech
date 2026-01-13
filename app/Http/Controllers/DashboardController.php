@@ -6,9 +6,10 @@ use App\Models\User;
 use App\Models\Workshop;
 use App\Models\StudentSpkResult;
 use App\Models\StudentWorkshopProgress;
-use App\Models\Kelas; // ✅ Pastikan Model Kelas ter-import
+use App\Models\Kelas; // Ensure this model exists and is imported correctly
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash; // Import Hash for password creation
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -20,7 +21,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Ambil Semua Workshop & Progress
+        // Retrieve All Workshops & Progress
         $allWorkshops = Workshop::all();
         
         $formattedWorkshops = $allWorkshops->map(function ($ws) use ($user) {
@@ -30,7 +31,7 @@ class DashboardController extends Controller
 
             $status = 'locked'; 
 
-            // Logika Buka Kunci
+            // Unlock Logic
             if ($ws->id === 1 && !$progress) {
                 $status = 'available';
             } elseif ($progress) {
@@ -51,7 +52,7 @@ class DashboardController extends Controller
             ];
         });
 
-        // Statistik
+        // Statistics
         $stats = [
             'completed' => $formattedWorkshops->where('status', 'completed')->count(),
             'active'    => $formattedWorkshops->where('status', 'available')->count(),
@@ -72,12 +73,12 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Pastikan hanya instruktur yang akses
+        // Ensure only instructors/admins access
         if ($user->role !== 'instructor' && $user->role !== 'admin') {
              // return redirect()->route('dashboard.peserta');
         }
 
-        // Ambil Data Submission (Tugas Masuk)
+        // Retrieve Submission Data
         $submissions = StudentWorkshopProgress::with(['user', 'workshop'])
             ->whereNotNull('photo_url')
             ->orderBy('updated_at', 'desc')
@@ -94,7 +95,7 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Statistik Pengajar
+        // Instructor Statistics
         $stats = [
             'total_students' => User::where('role', 'student')->count(),
             'pending_reviews' => $submissions->where('status', 'pending')->count(),
@@ -108,7 +109,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    // Aksi Penilaian (Grading)
+    // Grading Action
     public function gradeSubmission(Request $request)
     {
         $request->validate([
@@ -178,7 +179,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Ambil Data Real
+        // Retrieve Real Data
         $workshopProgress = StudentWorkshopProgress::where('user_id', $user->id)
                             ->with('workshop')
                             ->get();
@@ -186,7 +187,7 @@ class DashboardController extends Controller
         $completedCount = $workshopProgress->where('status', 'completed')->count();
         $totalWorkshops = Workshop::count();
         
-        // Hitung XP
+        // Calculate XP
         $xp = 0;
         foreach($workshopProgress as $prog) {
             if($prog->status == 'completed') $xp += 500;
@@ -250,23 +251,23 @@ class DashboardController extends Controller
     // 4. MANAJEMEN KELAS (CRUD LENGKAP) ✅
     // ==========================================
     
-    // READ: Tampilkan daftar kelas
+    // READ: Display class list
     public function kelas()
     {
         $user = Auth::user();
 
-        // Ambil data kelas beserta hitungan siswa dan workshop
+        // Retrieve class data along with student and workshop counts
         $dataKelas = Kelas::withCount(['students', 'workshops'])
                           ->orderBy('created_at', 'desc')
                           ->get();
 
         return Inertia::render('Pengajar/ManajemenKelas', [
             'auth' => ['user' => $user],
-            'kelas_list' => $dataKelas // Data dikirim ke React
+            'kelas_list' => $dataKelas // Data sent to React
         ]);
     }
 
-    // CREATE: Simpan kelas baru
+    // CREATE: Store new class
     public function storeKelas(Request $request)
     {
         $request->validate([
@@ -283,13 +284,13 @@ class DashboardController extends Controller
             'deskripsi' => $request->deskripsi,
             'theme' => $request->theme,
             'status' => 'Aktif',
-            'emoji' => '🎓' // Default emoji jika tidak diinput
+            'emoji' => '🎓' // Default emoji if not input
         ]);
 
         return redirect()->back()->with('message', 'Kelas berhasil dibuat!');
     }
 
-    // UPDATE: Edit kelas
+    // UPDATE: Edit class
     public function updateKelas(Request $request, $id)
     {
         $kelas = Kelas::findOrFail($id);
@@ -305,14 +306,14 @@ class DashboardController extends Controller
             'pelatih' => $request->pelatih,
             'periode' => $request->periode,
             'deskripsi' => $request->deskripsi,
-            // Theme bisa diupdate jika dikirim, jika tidak pakai yang lama
+            // Theme can be updated if sent, otherwise keep old
             'theme' => $request->theme ?? $kelas->theme, 
         ]);
 
         return redirect()->back()->with('message', 'Kelas berhasil diperbarui!');
     }
 
-    // DELETE: Hapus kelas
+    // DELETE: Delete class
     public function destroyKelas($id)
     {
         $kelas = Kelas::findOrFail($id);
@@ -321,16 +322,16 @@ class DashboardController extends Controller
         return redirect()->back()->with('message', 'Kelas berhasil dihapus!');
     }
 
-// ==========================================
+    // ==========================================
     // 5. MANAJEMEN PESERTA (SISWA)
     // ==========================================
     
-    // READ: Tampilkan Halaman
+    // READ: Display Page
     public function siswa()
     {
         $user = Auth::user();
 
-        // Ambil data siswa
+        // Retrieve student data
         $students = User::where('role', 'student')
                         ->with('kelas')
                         ->orderBy('created_at', 'desc')
@@ -342,7 +343,7 @@ class DashboardController extends Controller
                                 'email' => $student->email,
                                 'kelas_id' => $student->kelas_id,
                                 'kelas_nama' => $student->kelas->nama ?? 'Belum ada kelas',
-                                'kelas_color' => $student->kelas->theme ?? 'gray', // Ambil tema kelas
+                                'kelas_color' => $student->kelas->theme ?? 'gray', // Get class theme
                                 'status_pkl' => $student->status_pkl,
                                 'nilai_pre' => $student->pre_test_score ?? 0,
                                 'nilai_post' => $student->post_test_score ?? 0,
@@ -350,66 +351,229 @@ class DashboardController extends Controller
                             ];
                         });
 
-        // Ambil data kelas untuk Dropdown & Filter
+        // Retrieve class data for Dropdown & Filter
         $kelasList = Kelas::select('id', 'nama', 'pelatih', 'theme')->get();
 
         return Inertia::render('Pengajar/ManajemenPeserta', [
             'auth' => ['user' => $user],
             'students' => $students,
-            'kelas_list' => $kelasList // Kirim data kelas ke React
+            'kelas_list' => $kelasList // Send class data to React
         ]);
     }
 
-    // CREATE: Tambah Siswa Baru
+    // CREATE: Add New Student
     public function storeSiswa(Request $request)
     {
-        $request->validate([
+        // 1. Validate Input
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
+            'phone' => 'nullable|string|max:20',
+            'age' => 'nullable|integer',
+            'school_grade' => 'nullable|string|max:50',
+            'disability' => 'nullable|string|max:100',
             'kelas_id' => 'required|exists:kelas,id',
+            'status_pkl' => 'required|string'
         ]);
 
+        // 2. Save to Database
         User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt('password'), // Default password
-            'role' => 'student',
-            'kelas_id' => $request->kelas_id,
-            'status_pkl' => 'dalam_pelatihan',
-            'pre_test_score' => 0,
-            'post_test_score' => 0,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
+            'age' => $validated['age'] ?? null,
+            'school_grade' => $validated['school_grade'] ?? null,
+            'disability' => $validated['disability'] ?? null,
+            
+            'kelas_id' => $validated['kelas_id'],
+            'status_pkl' => $validated['status_pkl'],
+            
+            'password' => Hash::make('password'), // Default password
+            'role' => 'student', // Mandatory set role as student
         ]);
 
-        return redirect()->back()->with('message', 'Siswa berhasil ditambahkan!');
+        return redirect()->back()->with('success', 'Siswa berhasil ditambahkan!');
     }
 
-    // UPDATE: Edit Siswa
+    // UPDATE: Edit Student
     public function updateSiswa(Request $request, $id)
     {
         $student = User::findOrFail($id);
 
-        $request->validate([
-            'name' => 'required|string',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$id,
+            'phone' => 'nullable|string',
+            'age' => 'nullable|integer',
+            'school_grade' => 'nullable|string',
+            'disability' => 'nullable|string',
             'kelas_id' => 'required|exists:kelas,id',
-            'status_pkl' => 'required'
+            'status_pkl' => 'required|string'
         ]);
 
-        $student->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'kelas_id' => $request->kelas_id,
-            'status_pkl' => $request->status_pkl,
-        ]);
+        $student->update($validated);
 
-        return redirect()->back()->with('message', 'Data siswa diperbarui!');
+        return redirect()->back()->with('success', 'Data siswa diperbarui!');
     }
 
-    // DELETE: Hapus Siswa
+    // DELETE: Delete Student
     public function destroySiswa($id)
     {
         $student = User::findOrFail($id);
         $student->delete();
         return redirect()->back()->with('message', 'Siswa dihapus!');
+    }
+
+    // DETAIL SISWA (Personal Statistics)
+    public function detailSiswa($id)
+    {
+        $user = Auth::user();
+        
+        // 1. Retrieve Target Student Data (Complete with relations)
+        // Ensure relationships 'kelas', 'workshopProgress.workshop', 'spkResult' exist in User model
+        $student = User::with(['kelas', 'workshopProgress.workshop', 'spkResult'])
+                       ->where('role', 'student')
+                       ->findOrFail($id);
+
+        // 2. Calculate Basic Statistics
+        $totalWorkshops = Workshop::count();
+        $completedWorkshops = $student->workshopProgress->where('status', 'completed')->count();
+        $progressPercent = $totalWorkshops > 0 ? round(($completedWorkshops / $totalWorkshops) * 100) : 0;
+        
+        // Calculate Average Score (Pre + Post) - Adjust logic if needed
+        $totalScore = 0;
+        $countScore = 0;
+        foreach($student->workshopProgress as $prog) {
+            if($prog->post_test_score !== null) { // Assuming checking post_test_score for average
+                $totalScore += $prog->post_test_score;
+                $countScore++;
+            }
+        }
+        $avgScore = $countScore > 0 ? round($totalScore / $countScore) : 0;
+
+        // 3. Determine Persona (Based on SPK or Scores)
+        $persona = "Novice Brewer";
+        // $this->calculatePersona($student) logic is integrated here or can be separate helper
+        $spk = $student->spkResult;
+        if($spk) {
+            if ($spk->nilai_keseluruhan > 90) $persona = "Coffee Master";
+            elseif ($spk->predikat_keterampilan == 'Sangat Baik') $persona = "Artisan Crafter";
+            elseif ($spk->predikat_pengetahuan == 'Sangat Baik') $persona = "Coffee Scholar";
+        } elseif ($completedWorkshops > 5) {
+             $persona = 'Expert Brewer';
+        } elseif ($completedWorkshops > 2) {
+             $persona = 'Intermediate';
+        }
+
+        // 4. Format History (Timeline)
+        $history = $student->workshopProgress
+            ->sortByDesc('updated_at')
+            ->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'title' => $item->workshop->title,
+                    'status' => $item->status,
+                    'date' => $item->updated_at->format('d M Y, H:i'),
+                    'score' => $item->post_test_score,
+                    'type' => $item->status == 'completed' ? 'completion' : 'submission'
+                ];
+            })->values();
+
+        // 5. Prepare Student Data for View
+        $studentData = [
+            'id' => $student->id,
+            'name' => $student->name,
+            'email' => $student->email,
+            'phone' => $student->phone ?? '-',
+            'avatar' => strtoupper(substr($student->name, 0, 1)),
+            'kelas' => $student->kelas->nama ?? '-',
+            'join_date' => $student->created_at->format('d M Y'),
+            'status_pkl' => $student->status_pkl,
+            'age' => $student->age ?? '-',
+            'school_grade' => $student->school_grade ?? '-',
+            'disability' => $student->disability,
+            'persona' => $persona,
+        ];
+
+        // 6. Workshop List for "Overview Modul" Tab
+        // Map all workshops and attach student status
+        $allWorkshops = Workshop::all();
+        $workshopsData = $allWorkshops->map(function($ws) use ($student) {
+            $studentWs = $student->workshopProgress->where('workshop_id', $ws->id)->first();
+            
+            return [
+                'title' => $ws->title,
+                'status' => $studentWs ? $studentWs->status : 'pending', // 'pending' or 'locked' as default
+                'score' => $studentWs ? $studentWs->post_test_score : 0, // Using post_test_score
+                'last_update' => $studentWs ? $studentWs->updated_at->format('d M Y') : '-',
+            ];
+        });
+
+        // Stats Array
+        $stats = [
+            'progress' => $progressPercent,
+            'avg_score' => $avgScore,
+            'completed_modules' => $completedWorkshops,
+            'total_modules' => $totalWorkshops,
+            'xp' => ($completedWorkshops * 500) + ($avgScore * 10) // Consistent XP logic
+        ];
+
+        return Inertia::render('Pengajar/DetailSiswa', [
+            'auth' => ['user' => $user],
+            'student' => $studentData,
+            'stats' => $stats,
+            'workshops' => $workshopsData,
+            'history' => $history // Reusing history from point 4
+        ]);
+    }
+
+    public function analisis()
+    {
+        $user = Auth::user();
+
+        // Retrieve student data and calculate SPK values dynamically
+        $students = User::where('role', 'student')
+            ->with(['kelas']) // Add 'spkResult' here if relation exists
+            ->get()
+            ->map(function ($s) {
+                // Simulation values (Replace with $s->spkResult->nilai if DB is ready)
+                $visual = rand(60, 95); 
+                $soft = rand(65, 95);
+                $total = ($visual * 0.6) + ($soft * 0.4);
+                
+                // Status Logic
+                if ($total >= 85) {
+                    $status = 'Siap PKL';
+                    $rek = 'Kompetensi sangat baik, siap magang.';
+                } elseif ($total >= 75) {
+                    $status = 'Perlu Pendampingan';
+                    $rek = 'Butuh pengawasan saat praktek alat.';
+                } else {
+                    $status = 'Perlu Pelatihan Lanjutan';
+                    $rek = 'Wajib mengulang materi dasar.';
+                }
+
+                return [
+                    'id' => $s->id,
+                    'nama' => $s->name,
+                    'kelas' => $s->kelas->nama ?? 'Belum ada kelas',
+                    'visualRecognition' => $visual,
+                    'softSkill' => $soft,
+                    'totalNilai' => round($total, 1),
+                    'status' => $status,
+                    'rekomendasi' => $rek
+                ];
+            });
+
+        return Inertia::render('Pengajar/AnalisisSPK', [
+            'auth' => ['user' => $user],
+            'students' => $students // ✅ This data MUST be sent
+        ]);
+    }
+
+    // Helper for Persona (Optional - logic moved inside detailSiswa)
+    private function calculatePersona($student) {
+        // Logic implemented directly in detailSiswa for better context access
+        return 'Novice Brewer';
     }
 }

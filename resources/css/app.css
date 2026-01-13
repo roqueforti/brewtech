@@ -4,78 +4,90 @@
 
 @layer base {
   :root {
-    /* --- TEMA KARTUN CERIA (LIGHT MODE) --- */
+    /* --- TEMA BREWTECH VIBRANT (Kartun Ceria) --- */
+    /* Format: R G B (Tanpa koma, dipisah spasi) */
     
-    /* Background: Cream Lembut (#FFF8E1) */
-    --background: 255 248 225;
+    /* Background: Cream Susu (Lebih terang & bersih) */
+    --background: 255 251 245; 
     
-    /* Teks Utama: Coklat Kopi Tua (#5D4037) */
-    --foreground: 93 64 55;
+    /* Teks Utama: Coklat Espresso (Tetap gelap agar terbaca jelas) */
+    --foreground: 78 52 46; 
 
-    /* Card/Panel: Floral White (#FFFAF0) - Sedikit lebih putih dari background */
-    --card: 255 250 240;
-    --card-foreground: 93 64 55;
+    /* Card: PUTIH BERSIH (Kunci agar tidak terlihat kusam) */
+    --card: 255 255 255;
+    --card-foreground: 78 52 46;
 
-    /* Popover/Modal */
-    --popover: 255 250 240;
-    --popover-foreground: 93 64 55;
+    /* Popover */
+    --popover: 255 255 255;
+    --popover-foreground: 78 52 46;
 
-    /* Primary: Kuning Pisang (#FFCA28) - Untuk tombol utama */
-    --primary: 255 202 40;
-    --primary-foreground: 93 64 55; /* Teks coklat di atas tombol kuning */
+    /* Primary: ORANGE SEGAR (Menggantikan Kuning Pisang) */
+    --primary: 255 152 0; 
+    --primary-foreground: 255 255 255; 
 
-    /* Secondary: Coklat Muda/Latte (#D7CCC8) */
-    --secondary: 215 204 200;
-    --secondary-foreground: 93 64 55;
+    /* Secondary: BIRU LANGIT (Warna dingin penyeimbang) */
+    --secondary: 66 165 245;
+    --secondary-foreground: 255 255 255;
 
-    /* Muted: Abu-abu hangat */
-    --muted: 239 235 233;
-    --muted-foreground: 141 110 99;
+    /* Accent: KUNING MENTEGA (Untuk highlight lembut) */
+    --accent: 255 238 88;
+    --accent-foreground: 78 52 46;
 
-    /* Accent: Cream Tua (#FFECB3) */
-    --accent: 255 236 179;
-    --accent-foreground: 93 64 55;
-
-    /* Destructive: Merah Soft (#EF5350) - Untuk Error/Delete */
+    /* Destructive: MERAH JAMBU / CORAL */
     --destructive: 239 83 80;
     --destructive-foreground: 255 255 255;
 
-    /* Border: Coklat Medium (#8D6E63) - Untuk garis tebal kartun */
-    --border: 141 110 99;
+    /* Muted: Cream Kopi (Untuk background input/elemen pasif) */
+    --muted: 245 240 230;
+    --muted-foreground: 141 110 99;
+
+    /* Border: Coklat Muda (Garis pemisah yang lembut) */
+    --border: 230 215 200;
     
-    /* Input: Putih bersih */
+    /* Input: Putih */
     --input: 255 255 255;
     
-    /* Ring: Kuning Fokus */
-    --ring: 255 202 40;
+    /* Ring: Orange Fokus */
+    --ring: 255 152 0;
 
-    /* Radius: 1.5rem (24px) - Agar sudut-sudut terlihat sangat bulat */
+    /* Radius: Tetap Besar (Super Bulat) */
     --radius: 1.5rem;
 
-    /* Chart Colors (Opsional - Warna Warni) */
-    --chart-1: 255 167 38;  /* Orange */
-    --chart-2: 102 187 106; /* Green */
-    --chart-3: 66 165 245;  /* Blue */
-    --chart-4: 239 83 80;   /* Red */
-    --chart-5: 255 202 40;  /* Yellow */
+    /* Chart Colors (Diambil dari palet gambar) */
+    --chart-1: 255 152 0;   /* Orange */
+    --chart-2: 66 165 245;  /* Blue */
+    --chart-3: 239 83 80;   /* Red */
+    --chart-4: 255 238 88;  /* Yellow */
+    --chart-5: 141 110 99;  /* Brown */
+    
+    /* Sidebar Specific Colors (Untuk SidebarPengajar) */
+    --sidebar-background: 255 255 255;
+    --sidebar-foreground: 78 52 46;
+    --sidebar-primary: 255 152 0;
+    --sidebar-primary-foreground: 255 255 255;
+    --sidebar-accent: 245 240 230;
+    --sidebar-accent-foreground: 78 52 46;
+    --sidebar-border: 230 215 200;
+    --sidebar-ring: 255 152 0;
   }
 
   .dark {
-    /* --- TEMA ESPRESSO (DARK MODE) --- */
-    /* Background: Coklat Sangat Tua (#3E2723) */
-    --background: 62 39 35;
-    /* Teks: Cream Terang (#FFF8E1) */
+    /* --- TEMA DARK ROAST (Malam Hari) --- */
+    /* Background: Coklat Kopi Pekat */
+    --background: 45 30 25;
+    /* Teks: Cream Terang */
     --foreground: 255 248 225;
 
-    --card: 78 52 46;
+    /* Card: Coklat sedikit lebih terang dari background */
+    --card: 62 39 35;
     --card-foreground: 255 248 225;
 
-    --popover: 78 52 46;
+    --popover: 62 39 35;
     --popover-foreground: 255 248 225;
 
-    /* Primary tetap Kuning agar kontras */
-    --primary: 255 202 40;
-    --primary-foreground: 62 39 35;
+    /* Primary tetap Orange agar kontras */
+    --primary: 255 167 38;
+    --primary-foreground: 45 30 25;
 
     --secondary: 93 64 55;
     --secondary-foreground: 255 248 225;
@@ -83,15 +95,25 @@
     --muted: 78 52 46;
     --muted-foreground: 188 170 164;
 
-    --accent: 78 52 46;
+    --accent: 93 64 55;
     --accent-foreground: 255 248 225;
 
     --destructive: 229 57 53;
     --destructive-foreground: 255 255 255;
 
-    --border: 141 110 99;
-    --input: 78 52 46;
-    --ring: 255 202 40;
+    --border: 93 64 55;
+    --input: 62 39 35;
+    --ring: 255 167 38;
+    
+    /* Sidebar Dark Mode */
+    --sidebar-background: 62 39 35;
+    --sidebar-foreground: 255 248 225;
+    --sidebar-primary: 255 167 38;
+    --sidebar-primary-foreground: 45 30 25;
+    --sidebar-accent: 93 64 55;
+    --sidebar-accent-foreground: 255 248 225;
+    --sidebar-border: 93 64 55;
+    --sidebar-ring: 255 167 38;
   }
 }
 
@@ -104,13 +126,13 @@
   }
 }
 
-/* Custom Scrollbar yang lucu */
+/* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-[#D7CCC8] rounded-full hover:bg-[#8D6E63] border-2 border-transparent bg-clip-content;
+  @apply bg-primary/30 rounded-full hover:bg-primary/60 transition-colors border-2 border-transparent bg-clip-content;
 }
