@@ -3,169 +3,146 @@
 namespace App\Http\Controllers;
 
 use App\Models\Module;
+use App\Models\ModuleStep;
+use App\Models\ModuleQuestion;
+use App\Models\StudentModuleProgress;
+use App\Models\Setting;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class ModuleController extends Controller
 {
+    // =======================================================================
+    // 1. AREA PENGAJAR (INSTRUCTOR) - CRUD BANK MODUL
+    // =======================================================================
+
     public function index()
     {
-        // Load relasi steps dan questions agar bisa diedit di frontend
-        $modules = Module::with(['steps', 'questions'])->latest()->get();
-        
-        return Inertia::render('Pengajar/ManajemenModul', [
-            'modules' => $modules
+        $modules = Module::withCount(['steps', 'questions'])
+            ->latest()
+            ->get();
+
+        // Ambil Data Setting Global Soft Skills
+        $rawSoftSkills = Setting::where('key', 'global_soft_skills')->value('value');
+        $globalSoftSkills = $rawSoftSkills ? json_decode($rawSoftSkills) : ['Kedisiplinan', 'Kerapian'];
+
+        return Inertia::render('Pengajar/Modul/Index', [ // Sesuaikan path jika file index dipindah
+            'modules' => $modules,
+            'globalSoftSkills' => $globalSoftSkills
         ]);
+    }
+
+    // Update Kriteria Global Soft Skills
+    public function updateGlobalSoftSkills(Request $request)
+    {
+        $request->validate([
+            'criteria' => 'required|array',
+            'criteria.*' => 'string|max:50'
+        ]);
+
+        Setting::updateOrCreate(
+            ['key' => 'global_soft_skills'],
+            ['value' => json_encode($request->criteria), 'type' => 'json']
+        );
+
+        return redirect()->back()->with('success', 'Kriteria penilaian global diperbarui!');
     }
 
     public function store(Request $request)
     {
-        // Validasi dasar
-        $validated = $request->validate([
-            'title' => 'required|string',
-            'description' => 'required',
-            'category' => 'required',
-            'duration' => 'required',
-            // Validasi Nested (Array) - Opsional saat create awal
-            'steps' => 'array|nullable',
-            'questions' => 'array|nullable',
+        $request->validate([
+            'title' => 'required|string|max:255',
         ]);
 
-        // Gunakan variabel $module untuk menampung hasil create dari dalam transaction
-        $module = DB::transaction(function () use ($validated) {
-            // 1. Simpan Modul Utama
-            $newModule = Module::create([
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'category' => $validated['category'],
-                'duration' => $validated['duration'],
-            ]);
+        Module::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'emoji' => '☕',
+        ]);
 
-            // 2. Simpan Langkah Praktikum (Jika ada input awal)
-            if (!empty($validated['steps'])) {
-                foreach ($validated['steps'] as $index => $step) {
-                    $newModule->steps()->create([
-                        'order' => $index + 1,
-                        'title' => $step['title'],
-                        'description' => $step['description']
-                    ]);
-                }
-            }
-
-            // 3. Simpan Soal (Jika ada input awal)
-            if (!empty($validated['questions'])) {
-                foreach ($validated['questions'] as $q) {
-                    $newModule->questions()->create([
-                        'type' => $q['type'],
-                        'question' => $q['question'],
-                        'options' => $q['options'], 
-                        'correct_answer' => $q['correct_answer']
-                    ]);
-                }
-            }
-
-            return $newModule; // Kembalikan object modul
-        });
-
-        // ✅ PERUBAHAN PENTING:
-        // Redirect langsung ke halaman Detail/Edit agar user bisa lanjut isi materi
-        return redirect()->route('pengajar.modul.edit', $module->id)
-                         ->with('success', 'Modul dibuat! Silakan lengkapi materi.');
+        return redirect()->back()->with('success', 'Modul berhasil dibuat! Silakan edit untuk menambah materi.');
     }
 
-public function edit($id) {
-    $module = Module::with(['steps', 'questions'])->findOrFail($id);
-    return Inertia::render('Pengajar/DetailModul', ['module' => $module]);
+public function edit($id)
+{
+    $module = Module::with(['pre_test_questions', 'post_test_questions'])->findOrFail($id);
+
+    // Arahkan ke folder Pages/Pengajar/Modul/Edit
+    return Inertia::render('Pengajar/Modul/Edit', [
+        'module' => $module
+    ]);
 }
 
     public function update(Request $request, $id)
     {
-        $module = Module::findOrFail($id);
-        
-        $validated = $request->validate([
-            'title' => 'required',
-            'description' => 'required',
-            'category' => 'required',
-            'duration' => 'required',
-            'steps' => 'array|nullable',
-            'questions' => 'array|nullable',
-        ]);
+        DB::transaction(function () use ($request, $id) {
+            $module = Module::findOrFail($id);
 
-        DB::transaction(function () use ($module, $validated, $request) {
-            // 1. Update Modul Utama
+            // 1. Update Info Dasar
             $module->update([
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'category' => $validated['category'],
-                'duration' => $validated['duration'],
+                'title' => $request->title,
+                'description' => $request->description,
             ]);
 
-            // --- HELPER UPLOAD ---
-            // $fileInput: File object dari request
-            // $oldData: Data {url, type} yang lama (dari DB)
-            $processFile = function($fileInput, $oldData, $folder) {
-                if ($fileInput instanceof \Illuminate\Http\UploadedFile) {
-                    $path = $fileInput->store($folder, 'public');
-                    return [
-                        'url' => '/storage/' . $path,
-                        'type' => str_contains($fileInput->getMimeType(), 'video') ? 'video' : 'image'
-                    ];
-                }
-                // Jika tidak ada file baru, kembalikan data lama
-                return $oldData ?? null; 
-            };
-
-            // 2. Update Steps
-            $module->steps()->delete();
-            if (!empty($request->steps)) {
-                foreach ($request->steps as $index => $step) {
-                    // Cek media utama step
-                    $media = $processFile($step['media_file'] ?? null, [
-                        'url' => $step['media_url'] ?? null, 
-                        'type' => $step['media_type'] ?? null
-                    ], 'media_steps');
+            // 2. Handle Steps
+            $module->steps()->delete(); 
+            if ($request->steps) {
+                foreach ($request->steps as $stepData) {
+                    $path = $this->handleFileUpload($stepData['media_file'] ?? null, $stepData['media_url'] ?? null, 'module_steps');
+                    $type = $stepData['media_type'] ?? 'image';
+                    if (isset($stepData['media_file']) && $stepData['media_file'] instanceof \Illuminate\Http\UploadedFile) {
+                        $mime = $stepData['media_file']->getMimeType();
+                        $type = str_contains($mime, 'video') ? 'video' : 'image';
+                    }
 
                     $module->steps()->create([
-                        'order' => $index + 1,
-                        'title' => $step['title'],
-                        'description' => $step['description'],
-                        'media_url' => $media['url'] ?? null,
-                        'media_type' => $media['type'] ?? null,
+                        'title' => $stepData['title'],
+                        'description' => $stepData['description'],
+                        'media_url' => $path,
+                        'media_type' => $path ? $type : null,
                     ]);
                 }
             }
 
-            // 3. Update Questions
+            // 3. Handle Questions
             $module->questions()->delete();
-            if (!empty($request->questions)) {
-                foreach ($request->questions as $q) {
-                    // Cek media utama soal
-                    $qMedia = $processFile($q['media_file'] ?? null, [
-                        'url' => $q['media_url'] ?? null,
-                        'type' => $q['media_type'] ?? null
-                    ], 'media_questions');
+            if ($request->questions) {
+                foreach ($request->questions as $qData) {
+                    $mainPath = $this->handleFileUpload($qData['media_file'] ?? null, $qData['media_url'] ?? null, 'module_questions');
+                    $mainType = $qData['media_type'] ?? null;
+                    if (isset($qData['media_file']) && $qData['media_file'] instanceof \Illuminate\Http\UploadedFile) {
+                        $mime = $qData['media_file']->getMimeType();
+                        $mainType = str_contains($mime, 'video') ? 'video' : 'image';
+                    }
 
-                    // Cek media untuk Opsi Jawaban (Loop 4 opsi)
                     $optionsMedia = [];
-                    // Ambil data lama jika ada
-                    $oldOptionsMedia = $q['options_media'] ?? [null, null, null, null]; 
-                    
+                    $files = $qData['options_media_files'] ?? [null, null, null, null];
+                    $existingUrls = $qData['options_media'] ?? [null, null, null, null];
+
                     for ($i = 0; $i < 4; $i++) {
-                        $fileInput = $q['options_media_files'][$i] ?? null;
-                        $oldData = $oldOptionsMedia[$i] ?? null;
-                        
-                        $optionsMedia[$i] = $processFile($fileInput, $oldData, 'media_options');
+                        $oldUrl = null;
+                        if (isset($existingUrls[$i]) && is_array($existingUrls[$i]) && isset($existingUrls[$i]['url'])) {
+                            $oldUrl = $existingUrls[$i]['url'];
+                        }
+                        $optPath = $this->handleFileUpload($files[$i] ?? null, $oldUrl, 'module_options');
+                        if ($optPath) {
+                            $optionsMedia[$i] = ['url' => $optPath, 'type' => 'image']; 
+                        } else {
+                            $optionsMedia[$i] = null;
+                        }
                     }
 
                     $module->questions()->create([
-                        'type' => $q['type'],
-                        'question' => $q['question'],
-                        'options' => $q['options'],
-                        'correct_answer' => $q['correct_answer'],
-                        'media_url' => $qMedia['url'] ?? null,
-                        'media_type' => $qMedia['type'] ?? null,
-                        'options_media' => $optionsMedia, // Simpan array media opsi
+                        'type' => $qData['type'],
+                        'question' => $qData['question'],
+                        'options' => $qData['options'],
+                        'correct_answer' => $qData['correct_answer'],
+                        'media_url' => $mainPath,
+                        'media_type' => $mainPath ? $mainType : null,
+                        'options_media' => $optionsMedia,
                     ]);
                 }
             }
@@ -176,16 +153,118 @@ public function edit($id) {
 
     public function destroy($id)
     {
-        Module::findOrFail($id)->delete();
-        // Redirect ke index jika dihapus dari halaman detail
-        return redirect()->route('pengajar.modul.index')->with('success', 'Modul dihapus!');
+        $module = Module::findOrFail($id);
+        $module->delete();
+        return redirect()->back()->with('success', 'Modul dihapus.');
     }
 
-public function preview($id) {
-    $module = Module::with(['steps', 'questions'])->findOrFail($id);
-    return Inertia::render('Peserta/WorkshopPlay', [ // Pastikan 'Peserta/' sesuai nama folder
-        'module' => $module,
-        'isPreview' => true
-    ]);
-}
+    // ✅ UPDATE: Mengarah ke Page Preview Pengajar yang baru
+    public function preview($id)
+    {
+        $module = Module::with(['steps', 'questions'])->findOrFail($id);
+        
+        return Inertia::render('Pengajar/Modul/Preview', [ // Path file React: Pengajar/Modul/Preview.tsx
+            'module' => $module,
+            // Tidak perlu kirim progress karena ini preview murni
+        ]);
+    }
+
+    // =======================================================================
+    // 2. AREA PESERTA (STUDENT) & API
+    // =======================================================================
+
+    // ✅ UPDATE: Mengarah ke Page Play Peserta yang baru
+    public function play($id)
+    {
+        $user = Auth::user();
+        $module = Module::with(['steps', 'questions'])->findOrFail($id);
+        
+        $progress = StudentModuleProgress::firstOrCreate(
+            ['user_id' => $user->id, 'module_id' => $module->id],
+            ['status' => 'pending']
+        );
+
+        if ($progress->status === 'pending' || $progress->status === 'locked') {
+            $progress->update(['status' => 'in_progress']);
+        }
+
+        return Inertia::render('Peserta/Workshop/Play', [ // Path file React: Peserta/Workshop/Play.tsx
+            'auth' => ['user' => $user],
+            'module' => $module,
+            'progress' => $progress,
+        ]);
+    }
+
+    public function getSteps($id) { return response()->json(ModuleStep::where('module_id', $id)->get()); }
+    public function getQuiz($id, $type) { return response()->json(ModuleQuestion::where('module_id', $id)->where('type', $type)->get()); }
+
+    // ✅ UPDATE: Menghitung skor di Backend berdasarkan jawaban yang dikirim
+    public function submitQuiz(Request $request, $id)
+    {
+        $request->validate([
+            'type' => 'required|in:pre_test,post_test',
+            'answers' => 'required|array' // Terima array jawaban: {question_id: answer_index}
+        ]);
+
+        // 1. Ambil Kunci Jawaban dari Database
+        $questions = ModuleQuestion::where('module_id', $id)
+                    ->where('type', $request->type)
+                    ->get();
+
+        $totalQuestions = $questions->count();
+        $correctCount = 0;
+
+        // 2. Hitung Nilai
+        foreach ($questions as $q) {
+            // Cek apakah jawaban user ada dan sesuai kunci (index)
+            if (isset($request->answers[$q->id]) && 
+                (int)$request->answers[$q->id] === (int)$q->correct_answer) {
+                $correctCount++;
+            }
+        }
+
+        // Skor 0-100
+        $finalScore = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
+
+        // 3. Simpan Progress
+        $progress = StudentModuleProgress::firstOrCreate(
+            ['user_id' => Auth::id(), 'module_id' => $id], 
+            ['status' => 'in_progress']
+        );
+
+        if ($request->type === 'pre_test') {
+            $progress->pretest_score = $finalScore;
+        } else {
+            $progress->posttest_score = $finalScore;
+            // Syarat lulus: Skor >= 70
+            if ($finalScore >= 70) {
+                $progress->status = 'completed';
+            }
+        }
+        
+        $progress->save();
+
+        return redirect()->back()->with('success', 'Jawaban terkirim! Nilai Anda: ' . $finalScore);
+    }
+
+    public function submitPhoto(Request $request, $id)
+    {
+        $request->validate(['photo' => 'required|image|max:5120']);
+        $progress = StudentModuleProgress::where('user_id', Auth::id())->where('module_id', $id)->firstOrFail();
+        
+        if ($request->hasFile('photo')) {
+            if ($progress->photo_url) Storage::disk('public')->delete($progress->photo_url);
+            $progress->photo_url = $request->file('photo')->store('submissions', 'public');
+            $progress->save();
+        }
+        return redirect()->back()->with('success', 'Bukti praktik berhasil diunggah!');
+    }
+
+    private function handleFileUpload($newFile, $oldUrl, $folder)
+    {
+        if ($newFile && $newFile instanceof \Illuminate\Http\UploadedFile) {
+            return '/storage/' . $newFile->store($folder, 'public'); 
+        }
+        return (is_string($oldUrl)) ? $oldUrl : null;
+    }
 }

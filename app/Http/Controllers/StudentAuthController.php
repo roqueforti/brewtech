@@ -13,20 +13,18 @@ class StudentAuthController extends Controller
 {
     /**
      * Menampilkan Halaman Login Khusus Siswa (Kiosk Mode).
-     * Mengambil data Kelas & Siswa dari Database untuk dirender di React.
      */
     public function showLoginForm()
     {
         // 1. Ambil data Kelas beserta Siswanya (Eager Loading)
-        // Kita filter hanya user yang role-nya 'student' agar admin/pengajar tidak muncul di list
         $kelasData = Kelas::with(['students' => function ($query) {
             $query->where('role', 'student')
-                  ->select('id', 'name', 'kelas_id') // Ambil kolom yang perlu saja biar ringan
+                  // ✅ UPDATE: Tambahkan 'school_grade' dan 'disability' ke dalam select
+                  // Agar data ini tersedia di Frontend Login jika ingin ditampilkan
+                  ->select('id', 'name', 'kelas_id', 'school_grade', 'disability') 
                   ->orderBy('name', 'asc');
         }])->get();
 
-        // 2. Kirim data ke Frontend (Login.tsx) via Inertia
-        // Data ini akan diterima sebagai props bernama 'kelasFromDB'
         return Inertia::render('Auth/Login', [
             'kelasFromDB' => $kelasData
         ]);
@@ -52,17 +50,14 @@ class StudentAuthController extends Controller
 
         // 3. Proses Login
         if ($user) {
-            // Login user secara manual (Laravel Auth)
             Auth::login($user);
-
-            // Regenerasi session ID untuk keamanan
             $request->session()->regenerate();
 
             // Redirect ke Dashboard Peserta
-            return redirect()->intended(route('dashboard.peserta'));
+            return redirect()->intended(route('peserta.dashboard'));
         }
 
-        // 4. Jika gagal (misal user tidak ditemukan atau manipulasi data)
+        // 4. Jika gagal
         return back()->withErrors([
             'login_error' => 'Data siswa tidak valid atau tidak ditemukan.',
         ]);

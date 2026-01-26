@@ -6,22 +6,19 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('classroom_module', function (Blueprint $table) {
+        Schema::create('settings', function (Blueprint $table) {
             $table->id();
+            $table->string('key')->unique(); // Contoh: spk_bobot_visual
+            $table->text('value')->nullable(); // Contoh: 60
+            $table->string('type')->default('text'); // text, number, boolean
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('classroom_module');
+        Schema::dropIfExists('settings');
     }
 };

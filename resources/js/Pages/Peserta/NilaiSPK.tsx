@@ -4,17 +4,17 @@ import BottomNav from '@/Components/BottomNavPeserta';
 
 // --- Interfaces ---
 interface SPKData {
-  avg_pretest: number;
-  avg_posttest: number;
-  avg_activity: number;
-  predikat_kompetensi: string;
-  predikat_pengetahuan: string;
-  predikat_keterampilan: string;
-  predikat_sikap: string;
-  kelebihan: string[];
-  area_pengembangan: string[];
-  nilai_keseluruhan: number;
-  rekomendasi_selanjutnya: string;
+    avg_pretest: number;
+    avg_posttest: number;
+    avg_activity: number;
+    predikat_kompetensi: string;
+    predikat_pengetahuan: string;
+    predikat_keterampilan: string;
+    predikat_sikap: string;
+    kelebihan: string[];
+    area_pengembangan: string[];
+    nilai_keseluruhan: number;
+    rekomendasi_selanjutnya: string;
 }
 
 interface WorkshopRecap {
@@ -34,9 +34,9 @@ interface ExtraData {
 }
 
 interface PageProps {
-  auth: { user: { name: string } };
-  spk: SPKData | null; // Bisa null
-  extra: ExtraData;
+    auth: { user: { name: string } };
+    spk: SPKData | null; // Data can be null if not yet generated
+    extra: ExtraData;
 }
 
 export default function NilaiSPK({ auth, spk, extra }: PageProps) {
@@ -44,7 +44,7 @@ export default function NilaiSPK({ auth, spk, extra }: PageProps) {
   return (
     <div className="min-h-screen bg-[#FFF8E1] font-sans pb-32">
       
-      {/* === HEADER (Sticky di Mobile) === */}
+      {/* === HEADER (Sticky on Mobile) === */}
       <div className="sticky top-0 z-30 bg-[#FFFAF0]/90 backdrop-blur-md p-4 border-b-[4px] border-[#D7CCC8] shadow-sm flex items-center justify-between">
          <div className="flex items-center gap-3">
              <button onClick={() => router.visit('/peserta/dashboard')} className="p-2 bg-white rounded-xl border-[3px] border-[#D7CCC8] text-[#8D6E63] hover:bg-gray-50 transition-transform active:scale-95">
@@ -62,12 +62,12 @@ export default function NilaiSPK({ auth, spk, extra }: PageProps) {
 
       <div className="p-4 md:p-8 max-w-7xl mx-auto">
         
-        {/* === LOGIKA TAMPILAN: KOSONG VS ADA DATA === */}
+        {/* === DISPLAY LOGIC: EMPTY VS DATA AVAILABLE === */}
         {!spk ? (
             
-            // --- TAMPILAN "BELUM ADA NILAI" (DESIGN BARU) ---
+            // --- "NO GRADES YET" DISPLAY (NEW DESIGN) ---
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 animate-fade-in-up">
-                {/* Icon Gembok Besar */}
+                {/* Large Lock Icon */}
                 <div className="relative">
                     <div className="w-40 h-40 bg-[#FFECB3] rounded-full flex items-center justify-center border-[6px] border-[#FF8F00] shadow-lg animate-bounce-slow">
                         <Lock className="w-20 h-20 text-[#5D4037]" strokeWidth={2.5} />
@@ -77,7 +77,7 @@ export default function NilaiSPK({ auth, spk, extra }: PageProps) {
                     </div>
                 </div>
 
-                {/* Card Pesan */}
+                {/* Message Card */}
                 <div className="bg-white p-8 rounded-[2.5rem] border-[6px] border-[#8D6E63] shadow-[0_10px_0_rgba(93,64,55,0.2)] max-w-md w-full">
                     <h2 className="text-2xl font-black text-[#5D4037] mb-3">Rapor Masih Terkunci!</h2>
                     <p className="text-[#8D6E63] font-bold text-md leading-relaxed mb-8">
@@ -96,13 +96,10 @@ export default function NilaiSPK({ auth, spk, extra }: PageProps) {
 
         ) : (
 
-            // --- TAMPILAN DATA RAPOR (GRID RESPONSIVE) ---
+            // --- REPORT DATA DISPLAY (RESPONSIVE GRID) ---
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
-                {/* ... (KODE TAMPILAN RAPOR YANG LAMA TETAP DISINI) ... */}
-                {/* SAYA TULIS ULANG AGAR ANDA TIDAK BINGUNG COPY-PASTE */}
-                
-                {/* --- KOLOM KIRI: INSIGHT UMUM & PERSONA --- */}
+                {/* --- LEFT COLUMN: GENERAL INSIGHTS & PERSONA --- */}
                 <div className="lg:col-span-1 space-y-6">
                     {/* 1. PERSONA CARD */}
                     <div className="bg-white rounded-[2rem] p-6 border-[5px] border-[#8D6E63] shadow-[0_8px_0_rgba(93,64,55,0.2)] text-center relative overflow-hidden">
@@ -119,7 +116,7 @@ export default function NilaiSPK({ auth, spk, extra }: PageProps) {
                         </div>
                     </div>
 
-                    {/* 2. STATISTIK RINGKAS */}
+                    {/* 2. SUMMARY STATISTICS */}
                     <div className="bg-[#FFFAF0] rounded-[2rem] p-6 border-[4px] border-[#D7CCC8]">
                         <h3 className="text-lg font-black text-[#5D4037] mb-4 flex items-center gap-2">
                             <TrendingUp className="w-5 h-5" /> Statistik Utama
@@ -131,6 +128,7 @@ export default function NilaiSPK({ auth, spk, extra }: PageProps) {
                                     <span className="text-blue-600">{spk.predikat_pengetahuan}</span>
                                 </div>
                                 <div className="h-4 bg-gray-200 rounded-full overflow-hidden border border-gray-300">
+                                    {/* Ideally width would be calculated based on a numerical score if available, otherwise static or mapped */}
                                     <div className="h-full bg-blue-400 w-[85%] rounded-full shadow-inner"></div>
                                 </div>
                             </div>
@@ -155,7 +153,7 @@ export default function NilaiSPK({ auth, spk, extra }: PageProps) {
                         </div>
                     </div>
 
-                    {/* 3. CATATAN KELEBIHAN & KEKURANGAN */}
+                    {/* 3. STRENGTHS & WEAKNESSES NOTES */}
                     <div className="bg-white rounded-[2rem] p-5 border-[4px] border-[#D7CCC8] shadow-sm">
                         <h3 className="text-md font-black text-[#5D4037] mb-3">⚡ Kilas Balik</h3>
                         <div className="space-y-3">
@@ -179,10 +177,10 @@ export default function NilaiSPK({ auth, spk, extra }: PageProps) {
                     </div>
                 </div>
 
-                {/* --- KOLOM KANAN: REKAP WORKSHOP & DETAIL --- */}
+                {/* --- RIGHT COLUMN: WORKSHOP RECAP & DETAILS --- */}
                 <div className="lg:col-span-2 space-y-6">
 
-                    {/* 1. SCOREBOARD UTAMA */}
+                    {/* 1. MAIN SCOREBOARD */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div className="bg-[#5D4037] p-4 rounded-3xl text-white shadow-lg relative overflow-hidden group">
                             <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
@@ -205,7 +203,7 @@ export default function NilaiSPK({ auth, spk, extra }: PageProps) {
                         </div>
                     </div>
 
-                    {/* 2. REKAP WORKSHOP */}
+                    {/* 2. WORKSHOP RECAP */}
                     <div className="bg-white rounded-[2.5rem] p-6 md:p-8 border-[6px] border-[#8D6E63] shadow-[0_10px_0_rgba(93,64,55,0.2)]">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="p-3 bg-[#FFCA28] rounded-2xl border-[3px] border-[#FF8F00] shadow-sm">
@@ -255,7 +253,7 @@ export default function NilaiSPK({ auth, spk, extra }: PageProps) {
                         </div>
                     </div>
 
-                    {/* 3. REKOMENDASI BOX */}
+                    {/* 3. RECOMMENDATION BOX */}
                     <div className="bg-gradient-to-r from-[#6A1B9A] to-[#8E24AA] rounded-[2rem] p-6 text-white shadow-lg relative overflow-hidden">
                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
                             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center border-2 border-white/30 flex-shrink-0">

@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { 
     BookOpen, Users, GraduationCap, AlertCircle, 
-    BarChart3, Calendar, CheckCircle, Coffee, ArrowRight 
+    BarChart3, Calendar, CheckCircle, Coffee, ArrowRight, TrendingUp, Activity
 } from 'lucide-react';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react'; // Import Link for navigation
 import SidebarPengajar from '@/Components/SidebarPengajar';
-import HeaderPengajar from '@/Components/HeaderPengajar'; // ✅ Import Header Baru
+import HeaderPengajar from '@/Components/HeaderPengajar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card'; // Ensure you have these components
+// Optional: Import Recharts if you want the chart to be real
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
+// --- Types (Sesuaikan dengan data dari Backend) ---
 interface ClassData {
     id: number;
     name: string;
@@ -14,10 +18,11 @@ interface ClassData {
     workshop_count: number;
     student_count: number;
     theme: 'green' | 'yellow' | 'pink' | 'blue';
+    pass_rate?: number; // Optional: % Kelulusan
 }
 
 interface DashboardProps {
-    auth: { user: { name: string } };
+    auth: { user: { name: string, email: string, avatar?: string } };
     stats: {
         total_kelas: number;
         total_peserta: number;
@@ -26,8 +31,8 @@ interface DashboardProps {
     };
     active_classes?: ClassData[];
     chart_data?: {
-        pre_test: number[];
-        post_test: number[];
+        labels: string[]; // e.g., ["Modul 1", "Modul 2", ...]
+        scores: number[]; // e.g., [75, 80, 85, ...]
     };
 }
 
@@ -35,219 +40,263 @@ export default function Dashboard({
     auth, 
     stats, 
     active_classes = [], 
-    chart_data = { pre_test: [], post_test: [] } 
+    chart_data 
 }: DashboardProps) {
     
-    // State untuk Search dari Header
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Filter Kelas berdasarkan Search
+    // Filter Kelas (Client-side filtering for responsiveness)
     const filteredClasses = active_classes.filter(cls => 
         cls.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         cls.teacher.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Helper untuk styling tema kelas
     const getThemeStyle = (theme: string) => {
         switch(theme) {
-            case 'green': return { card: 'bg-green-50 border-green-200', text: 'text-green-700', icon: 'bg-green-100', btn: 'hover:bg-green-100' };
-            case 'yellow': return { card: 'bg-amber-50 border-amber-200', text: 'text-amber-700', icon: 'bg-amber-100', btn: 'hover:bg-amber-100' };
-            case 'pink': return { card: 'bg-pink-50 border-pink-200', text: 'text-pink-700', icon: 'bg-pink-100', btn: 'hover:bg-pink-100' };
-            default: return { card: 'bg-blue-50 border-blue-200', text: 'text-blue-700', icon: 'bg-blue-100', btn: 'hover:bg-blue-100' };
+            case 'green': return { card: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-800', icon: 'bg-emerald-100 text-emerald-600', btn: 'hover:bg-emerald-100' };
+            case 'yellow': return { card: 'bg-amber-50 border-amber-200', text: 'text-amber-800', icon: 'bg-amber-100 text-amber-600', btn: 'hover:bg-amber-100' };
+            case 'pink': return { card: 'bg-rose-50 border-rose-200', text: 'text-rose-800', icon: 'bg-rose-100 text-rose-600', btn: 'hover:bg-rose-100' };
+            default: return { card: 'bg-blue-50 border-blue-200', text: 'text-blue-800', icon: 'bg-blue-100 text-blue-600', btn: 'hover:bg-blue-100' };
         }
     };
 
-    const postTestScores = chart_data?.post_test || [];
+    // Format data untuk Recharts (jika chart_data ada)
+    const chartDataFormatted = chart_data?.labels.map((label, index) => ({
+        name: label,
+        score: chart_data.scores[index] || 0
+    })) || [];
 
     return (
-        <div className="flex min-h-screen bg-background font-sans text-foreground">
+        <div className="flex min-h-screen bg-background font-sans text-foreground selection:bg-primary/20">
             <Head title="Dashboard Mentor" />
 
-            <SidebarPengajar />
+            {/* Sidebar Desktop */}
+            <div className="hidden md:block w-72 shrink-0 border-r border-border bg-card h-screen sticky top-0">
+                <SidebarPengajar />
+            </div>
 
-            <main className="flex-1 w-full flex flex-col">
-                {/* ✅ Global Header dengan Search Handler */}
-                <HeaderPengajar onSearch={(q) => setSearchQuery(q)} />
+            <main className="flex-1 w-full flex flex-col h-screen overflow-hidden">
+                {/* Header Global */}
+                <HeaderPengajar 
+                    user={auth.user} 
+                    title="Dashboard Overview"
+                    onSearch={(q) => setSearchQuery(q)} 
+                />
                 
-                <div className="p-6 md:p-10 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 flex-1">
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 scroll-smooth">
+                    <div className="max-w-7xl mx-auto space-y-8 pb-20">
                     
-                    {/* Header Halaman */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
-                        <div>
-                            <h1 className="text-3xl font-black text-foreground">Dashboard</h1>
-                            <p className="text-muted-foreground font-medium mt-1">Ringkasan aktivitas pelatihan Anda hari ini.</p>
-                        </div>
-                        <div className="bg-card px-4 py-2 rounded-2xl border-2 border-border shadow-sm text-sm font-bold text-foreground flex items-center gap-2">
-                            <Calendar size={16} className="text-primary"/>
-                            {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                        </div>
-                    </div>
-
-                    {/* --- 1. STATS GRID --- */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                        <div className="bg-card p-5 rounded-[2rem] border-2 border-border shadow-sm hover:shadow-md transition-all group">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="p-3 bg-blue-100 rounded-2xl text-blue-600 group-hover:scale-110 transition-transform">
-                                    <BookOpen size={24} strokeWidth={2.5} />
-                                </div>
-                                <span className="text-xs font-bold bg-muted text-muted-foreground py-1 px-2 rounded-lg">Aktif</span>
+                        {/* Welcome Section */}
+                        <div className="flex flex-col md:flex-row justify-between items-end gap-4">
+                            <div>
+                                <h1 className="text-3xl font-black text-foreground tracking-tight">
+                                    Halo, {auth.user.name.split(' ')[0]}! 👋
+                                </h1>
+                                <p className="text-muted-foreground font-medium mt-1">
+                                    Berikut ringkasan aktivitas pelatihan Anda hari ini.
+                                </p>
                             </div>
-                            <h3 className="text-4xl font-black text-foreground mb-1">{stats?.total_kelas || 0}</h3>
-                            <p className="text-sm font-medium text-muted-foreground">Kelas Diampu</p>
-                        </div>
-                        
-                        <div className="bg-card p-5 rounded-[2rem] border-2 border-border shadow-sm hover:shadow-md transition-all group">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="p-3 bg-indigo-100 rounded-2xl text-indigo-600 group-hover:scale-110 transition-transform">
-                                    <Users size={24} strokeWidth={2.5} />
-                                </div>
-                            </div>
-                            <h3 className="text-4xl font-black text-foreground mb-1">{stats?.total_peserta || 0}</h3>
-                            <p className="text-sm font-medium text-muted-foreground">Total Siswa</p>
-                        </div>
-
-                        <div className="bg-purple-50 p-5 rounded-[2rem] border-2 border-purple-200 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-                            <div className="absolute right-[-20px] top-[-20px] w-32 h-32 bg-purple-200/50 rounded-full blur-2xl"></div>
-                            <div className="relative z-10">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-white rounded-2xl text-purple-600 shadow-sm">
-                                        <CheckCircle size={24} strokeWidth={2.5} />
-                                    </div>
-                                </div>
-                                <h3 className="text-4xl font-black text-purple-900 mb-1">{stats?.siap_pkl || 0}</h3>
-                                <p className="text-sm font-bold text-purple-700">Siswa Siap PKL</p>
+                            <div className="bg-white px-4 py-2 rounded-xl border border-border shadow-sm text-sm font-bold text-muted-foreground flex items-center gap-2">
+                                <Calendar size={16} className="text-primary"/>
+                                {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                             </div>
                         </div>
 
-                        <div className="bg-orange-50 p-5 rounded-[2rem] border-2 border-orange-200 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
-                            <div className="absolute right-[-20px] top-[-20px] w-32 h-32 bg-orange-200/50 rounded-full blur-2xl"></div>
-                            <div className="relative z-10">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-3 bg-white rounded-2xl text-orange-600 shadow-sm">
-                                        <AlertCircle size={24} strokeWidth={2.5} />
-                                    </div>
-                                </div>
-                                <h3 className="text-4xl font-black text-orange-900 mb-1">{stats?.perlu_bantuan || 0}</h3>
-                                <p className="text-sm font-bold text-orange-700">Perlu Bimbingan</p>
-                            </div>
+                        {/* --- 1. STATS GRID (Dynamic Data) --- */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                            <StatCard 
+                                title="Kelas Aktif" 
+                                value={stats.total_kelas} 
+                                icon={<BookOpen size={24} />} 
+                                color="blue" 
+                                subtext="Sedang berjalan"
+                            />
+                            <StatCard 
+                                title="Total Siswa" 
+                                value={stats.total_peserta} 
+                                icon={<Users size={24} />} 
+                                color="indigo" 
+                                subtext="Terdaftar di sistem"
+                            />
+                            <StatCard 
+                                title="Siap PKL" 
+                                value={stats.siap_pkl} 
+                                icon={<CheckCircle size={24} />} 
+                                color="green" 
+                                subtext="Kompeten & Lulus"
+                            />
+                            <StatCard 
+                                title="Perlu Bimbingan" 
+                                value={stats.perlu_bantuan} 
+                                icon={<AlertCircle size={24} />} 
+                                color="orange" 
+                                subtext="Butuh perhatian khusus"
+                            />
                         </div>
-                    </div>
 
-                    {/* --- 2. MAIN CONTENT GRID --- */}
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                        
-                        {/* KOLOM KIRI: Daftar Kelas */}
-                        <div className="xl:col-span-2 space-y-6">
-                            <div className="flex justify-between items-end">
-                                <div>
-                                    <h2 className="text-2xl font-black text-foreground">Kelas Saya</h2>
-                                    <p className="text-sm text-muted-foreground font-medium">Kelola workshop dan progres siswa</p>
+                        {/* --- 2. MAIN CONTENT GRID --- */}
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                            
+                            {/* KOLOM KIRI: Daftar Kelas (Dynamic List) */}
+                            <div className="xl:col-span-2 space-y-6">
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                                        <GraduationCap className="text-primary" size={24}/> Kelas Diampu
+                                    </h2>
+                                    {/* Optional Filter Button */}
                                 </div>
-                                <button className="text-sm font-bold text-primary bg-card border-2 border-border px-4 py-2 rounded-xl hover:bg-muted transition-colors shadow-sm">
-                                    Semua Semester
-                                </button>
-                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                {filteredClasses.length > 0 ? filteredClasses.map((kelas) => {
-                                    const style = getThemeStyle(kelas.theme);
-                                    return (
-                                        <div key={kelas.id} className={`rounded-[2.5rem] p-6 border-2 relative group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${style.card}`}>
-                                            <div className="flex justify-between items-start mb-6">
-                                                <div className={`p-3 rounded-2xl ${style.icon}`}>
-                                                    <GraduationCap className={style.text} size={24} strokeWidth={2.5} />
-                                                </div>
-                                                <div className="flex -space-x-2">
-                                                    {[...Array(Math.min(3, kelas.student_count))].map((_, i) => (
-                                                        <div key={i} className="w-8 h-8 rounded-full bg-white border-2 border-white flex items-center justify-center text-[10px] font-bold text-muted-foreground shadow-sm">
-                                                            {String.fromCharCode(65 + i)}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    {filteredClasses.length > 0 ? (
+                                        filteredClasses.map((kelas) => {
+                                            const style = getThemeStyle(kelas.theme);
+                                            return (
+                                                <Link href={`/pengajar/kelas/${kelas.id}`} key={kelas.id}>
+                                                    <div className={`rounded-[2rem] p-6 border-2 relative group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-pointer ${style.card}`}>
+                                                        <div className="flex justify-between items-start mb-4">
+                                                            <div className={`p-3 rounded-2xl ${style.icon}`}>
+                                                                <BookOpen size={20} strokeWidth={2.5} />
+                                                            </div>
+                                                            <div className="flex -space-x-2">
+                                                                {/* Dummy Avatars for visual flair */}
+                                                                {[...Array(Math.min(3, kelas.student_count))].map((_, i) => (
+                                                                    <div key={i} className="w-8 h-8 rounded-full bg-white border-2 border-white flex items-center justify-center text-[10px] font-bold text-muted-foreground shadow-sm">
+                                                                        {(i + 1)}
+                                                                    </div>
+                                                                ))}
+                                                                {kelas.student_count > 3 && (
+                                                                    <div className="w-8 h-8 rounded-full bg-white border-2 border-white flex items-center justify-center text-[10px] font-bold text-muted-foreground shadow-sm">
+                                                                        +{kelas.student_count - 3}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            </div>
 
-                                            <h3 className={`text-2xl font-black mb-1 ${style.text}`}>{kelas.name}</h3>
-                                            <p className={`text-sm font-medium opacity-80 mb-6 flex items-center gap-2 ${style.text}`}>
-                                                <Calendar size={14} /> Semester Genap 2026
+                                                        <h3 className={`text-xl font-black mb-1 line-clamp-1 ${style.text}`}>{kelas.name}</h3>
+                                                        <p className={`text-xs font-bold opacity-70 mb-6 ${style.text}`}>
+                                                            Pengajar: {kelas.teacher}
+                                                        </p>
+
+                                                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-current/10">
+                                                            <div className="flex gap-4">
+                                                                <div>
+                                                                    <span className={`text-[10px] uppercase font-bold opacity-60 block ${style.text}`}>Modul</span>
+                                                                    <span className={`text-lg font-black ${style.text}`}>{kelas.workshop_count}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span className={`text-[10px] uppercase font-bold opacity-60 block ${style.text}`}>Siswa</span>
+                                                                    <span className={`text-lg font-black ${style.text}`}>{kelas.student_count}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className={`p-2 rounded-lg bg-white/50 ${style.text}`}>
+                                                                <ArrowRight size={20} />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="col-span-1 md:col-span-2 py-16 text-center border-2 border-dashed border-border rounded-[2rem] bg-muted/20">
+                                            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                                                <BookOpen className="text-muted-foreground opacity-50" size={32} />
+                                            </div>
+                                            <p className="text-muted-foreground font-bold">
+                                                {searchQuery ? `Tidak ada kelas "${searchQuery}"` : "Belum ada kelas aktif."}
                                             </p>
-
-                                            <div className="flex items-center justify-between mt-auto">
-                                                <div className="flex flex-col">
-                                                    <span className={`text-[10px] uppercase font-bold opacity-70 ${style.text}`}>Workshop</span>
-                                                    <span className={`text-xl font-black ${style.text}`}>{kelas.workshop_count}</span>
-                                                </div>
-                                                <div className={`h-8 w-[1px] opacity-30 bg-current`}></div>
-                                                <div className="flex flex-col">
-                                                    <span className={`text-[10px] uppercase font-bold opacity-70 ${style.text}`}>Siswa</span>
-                                                    <span className={`text-xl font-black ${style.text}`}>{kelas.student_count}</span>
-                                                </div>
-                                                
-                                                <button className={`p-3 rounded-xl bg-white/80 shadow-sm transition-colors ${style.btn} ${style.text}`}>
-                                                    <ArrowRight size={20} strokeWidth={3} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                }) : (
-                                    <div className="col-span-2 py-12 text-center border-2 border-dashed border-border rounded-[2rem] bg-card/50">
-                                        <div className="p-4 bg-muted rounded-full inline-block mb-3">
-                                            <BookOpen className="text-muted-foreground" size={32} />
-                                        </div>
-                                        <p className="text-muted-foreground font-bold">
-                                            {searchQuery ? `Tidak ada kelas dengan nama "${searchQuery}"` : "Belum ada kelas aktif."}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* KOLOM KANAN: Grafik */}
-                        <div className="space-y-6">
-                            <div className="bg-card p-6 rounded-[2.5rem] border-2 border-border shadow-sm">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="p-2 bg-primary rounded-lg">
-                                        <BarChart3 className="text-primary-foreground" size={20} />
-                                    </div>
-                                    <h3 className="font-black text-lg text-foreground">Progres Siswa</h3>
-                                </div>
-
-                                <div className="relative h-48 flex items-end justify-between gap-2 mt-8">
-                                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                                            {[1,2,3,4].map(i => <div key={i} className="w-full h-[1px] bg-border/50 border-t border-dashed border-border"></div>)}
-                                    </div>
-
-                                    {postTestScores.length > 0 ? postTestScores.map((score, i) => (
-                                        <div key={i} className="relative w-full h-full flex items-end group">
-                                            <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-foreground text-background text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                                Nilai: {score}
-                                            </div>
-                                            <div 
-                                                className="w-full bg-gradient-to-t from-primary to-orange-400 rounded-t-lg mx-[2px] transition-all duration-500 hover:opacity-80 relative z-0"
-                                                style={{ height: `${score}%` }}
-                                            ></div>
-                                        </div>
-                                    )) : (
-                                        <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground italic">
-                                            Belum ada data nilai
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Quick Tips */}
-                            <div className="bg-yellow-50 p-6 rounded-[2.5rem] border-2 border-yellow-200 relative overflow-hidden">
-                                <div className="absolute -right-6 -bottom-6 text-yellow-200">
-                                    <Coffee size={100} />
-                                </div>
-                                <h4 className="font-black text-yellow-800 text-lg mb-2 relative z-10">Tips Hari Ini 💡</h4>
-                                <p className="text-sm text-yellow-700 font-medium leading-relaxed relative z-10">
-                                    "Jangan lupa cek foto hasil seduhan siswa. *Flat bed* yang rata menandakan tuangan air yang konsisten!"
-                                </p>
-                            </div>
-                        </div>
+                            {/* KOLOM KANAN: Grafik & Tips */}
+                            <div className="space-y-6">
+                                {/* Grafik Performa */}
+                                <Card className="bg-white p-6 rounded-[2rem] border-2 border-border shadow-sm overflow-hidden">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                            <BarChart3 size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-lg text-foreground">Rata-rata Nilai</h3>
+                                            <p className="text-xs text-muted-foreground">Performa Post-Test Siswa</p>
+                                        </div>
+                                    </div>
 
+                                    <div className="h-48 w-full">
+                                        {chartDataFormatted.length > 0 ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={chartDataFormatted}>
+                                                    <XAxis dataKey="name" hide />
+                                                    <Tooltip 
+                                                        cursor={{fill: 'transparent'}}
+                                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                    />
+                                                    <Bar 
+                                                        dataKey="score" 
+                                                        fill="#f97316" // Orange Primary
+                                                        radius={[4, 4, 0, 0]} 
+                                                        barSize={40}
+                                                    />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <div className="h-full flex items-center justify-center text-xs text-muted-foreground border border-dashed rounded-xl">
+                                                Data grafik belum tersedia
+                                            </div>
+                                        )}
+                                    </div>
+                                </Card>
+
+                                {/* Quick Tips Card */}
+                                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-[2rem] border-2 border-yellow-100 relative overflow-hidden group">
+                                    <div className="absolute -right-6 -bottom-6 text-yellow-200 group-hover:scale-110 transition-transform duration-500">
+                                        <Coffee size={120} />
+                                    </div>
+                                    <div className="relative z-10">
+                                        <div className="flex items-center gap-2 mb-3 text-yellow-700">
+                                            <div className="p-1.5 bg-yellow-100 rounded-md"><Activity size={16}/></div>
+                                            <span className="text-xs font-bold uppercase tracking-wider">Tips Mentor</span>
+                                        </div>
+                                        <h4 className="font-black text-yellow-900 text-lg mb-2">Evaluasi Rasa! ☕</h4>
+                                        <p className="text-sm text-yellow-800 font-medium leading-relaxed">
+                                            "Ingatkan siswa untuk selalu mencatat <em>Tasting Notes</em> setelah brewing. Konsistensi rasa adalah kunci!"
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
             </main>
+        </div>
+    );
+}
+
+// --- SUB-COMPONENTS ---
+
+function StatCard({ title, value, icon, color, subtext }: any) {
+    const colors: any = {
+        blue:   "bg-blue-50 text-blue-700 border-blue-200 icon-bg-blue-100",
+        indigo: "bg-indigo-50 text-indigo-700 border-indigo-200 icon-bg-indigo-100",
+        green:  "bg-emerald-50 text-emerald-700 border-emerald-200 icon-bg-emerald-100",
+        orange: "bg-orange-50 text-orange-700 border-orange-200 icon-bg-orange-100",
+    };
+    const activeColor = colors[color] || colors.blue;
+
+    return (
+        <div className={`p-5 rounded-[2rem] border-2 shadow-sm hover:shadow-md transition-all group ${activeColor}`}>
+            <div className="flex justify-between items-start mb-4">
+                <div className={`p-3 rounded-2xl bg-white/60 backdrop-blur-sm group-hover:scale-110 transition-transform`}>
+                    {icon}
+                </div>
+            </div>
+            <h3 className="text-4xl font-black mb-1">{value}</h3>
+            <p className="text-sm font-bold opacity-80">{title}</p>
+            <p className="text-[10px] font-medium opacity-60 mt-1">{subtext}</p>
         </div>
     );
 }
