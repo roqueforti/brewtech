@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Head, Link, router } from "@inertiajs/react";
-import SidebarPengajar from "@/Components/SidebarPengajar";
-import HeaderPengajar from "@/Components/HeaderPengajar";
+import { Head, Link, useForm } from "@inertiajs/react"; 
+import SidebarPengajar from '@/Components/SidebarPengajar';
+import HeaderPengajar from '@/Components/HeaderPengajar';
 import { 
-    Plus, Search, Edit2, Trash2, User, School, Accessibility, Eye, MoreHorizontal 
+    Plus, Search, Edit2, Trash2, User, School, Accessibility, Eye, MoreHorizontal, Loader2, AlertCircle
 } from "lucide-react";
 import { Button } from "@/Components/ui/button";
 import { Card } from "@/Components/ui/card";
@@ -18,12 +18,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/Components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/Components/ui/dropdown-menu"
 
 // --- TYPES ---
@@ -34,18 +29,15 @@ interface Student {
     school_grade?: string; 
     disability?: string;   
     kelas_nama: string; 
-    kelas_color?: string;
-    joined_at: string;
-    phone?: string;
 }
 
 export default function ManajemenPeserta({ auth, students }: { auth: any, students: Student[] }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+    const [editingId, setEditingId] = useState<number | null>(null);
 
-    // Form Data State
-    const [formData, setFormData] = useState({
+    // ✅ Setup Form Inertia
+    const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors, transform } = useForm({
         name: "", 
         school_grade: "", 
         disability: "", 
@@ -53,52 +45,70 @@ export default function ManajemenPeserta({ auth, students }: { auth: any, studen
         phone: ""
     });
 
-    // --- LOGIC ---
     const filteredStudents = students.filter(s => 
         s.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const openModal = (student?: Student) => {
+        clearErrors();
         if (student) {
-            setEditingStudent(student);
-            setFormData({
+            setEditingId(student.id);
+            setData({
                 name: student.name,
                 school_grade: student.school_grade || "",
                 disability: student.disability || "",
                 email: student.email,
-                phone: student.phone || ""
+                phone: "" // Phone opsional
             });
         } else {
-            setEditingStudent(null);
-            setFormData({ name: "", school_grade: "", disability: "", email: "", phone: "" });
+            setEditingId(null);
+            reset();
         }
         setIsModalOpen(true);
     };
 
     const handleSubmit = () => {
-        const submitData = {
-            ...formData,
-            // Auto-generate email dummy jika kosong untuk kebutuhan backend
-            email: formData.email || `${formData.name.toLowerCase().replace(/\s+/g, '')}@siswa.ypac`,
-            password: 'password', 
+        // ✅ 1. Gunakan transform untuk data otomatis (Email & Password)
+        transform((data) => ({
+            ...data,
+            // Generate email unik jika kosong: nama tanpa spasi + angka random + domain
+            email: editingId ? data.email : (data.email || `${data.name.toLowerCase().replace(/[^a-z0-9]/g, '')}${Math.floor(Math.random() * 999)}@siswa.ypac`),
+            password: 'password', // Default password
             role: 'student',
-            status_pkl: 'Belum Siap' 
+            status_pkl: 'Belum Siap'
+        }));
+
+        const options = {
+            onSuccess: () => { 
+                setIsModalOpen(false); 
+                toast.success(editingId ? "Data siswa diperbarui!" : "Siswa berhasil ditambahkan!"); 
+                reset();
+            },
+            // ✅ 2. Tampilkan Error Spesifik dari Backend
+            onError: (err: any) => {
+                console.error("Validation Errors:", err);
+                
+                // Cek error pada field yang tidak terlihat (seperti email duplikat)
+                if (err.email) {
+                    toast.error(`Gagal: ${err.email}`); 
+                } else if (err.password) {
+                    toast.error(`Gagal: ${err.password}`);
+                } else {
+                    toast.error("Gagal menyimpan. Periksa isian form berwarna merah.");
+                }
+            }
         };
 
-        if (editingStudent) {
-            router.put(`/pengajar/siswa/${editingStudent.id}`, submitData, {
-                onSuccess: () => { setIsModalOpen(false); toast.success("Biodata siswa diperbarui!"); }
-            });
+        if (editingId) {
+            put(`/pengajar/siswa/${editingId}`, options);
         } else {
-            router.post('/pengajar/siswa', submitData, {
-                onSuccess: () => { setIsModalOpen(false); toast.success("Siswa baru terdaftar!"); }
-            });
+            post('/pengajar/siswa', options);
         }
     };
 
     const handleDelete = (id: number) => {
         if(confirm("Hapus data siswa ini secara permanen?")) {
-            router.delete(`/pengajar/siswa/${id}`, {
+            destroy(`/pengajar/siswa/${id}`, {
                 onSuccess: () => toast.success("Siswa dihapus.")
             });
         }
@@ -108,7 +118,7 @@ export default function ManajemenPeserta({ auth, students }: { auth: any, studen
         <div className="flex min-h-screen bg-background font-sans text-foreground">
             <Head title="Data Peserta Didik" />
             <div className="hidden md:block"><SidebarPengajar /></div>
-            <Toaster position="top-right" />
+            <Toaster position="top-right" richColors />
             
             <main className="flex-1 flex flex-col h-screen overflow-hidden bg-[#FAFAF9]">
                 <HeaderPengajar />
@@ -116,19 +126,16 @@ export default function ManajemenPeserta({ auth, students }: { auth: any, studen
                 <div className="flex-1 overflow-y-auto p-6 md:p-10">
                     <div className="max-w-7xl mx-auto space-y-8 pb-20">
                         
-                        {/* HEADER & ACTIONS */}
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6">
                             <div>
                                 <h1 className="text-4xl font-black text-foreground mb-2 tracking-tight">Master Data Siswa 🎓</h1>
                                 <p className="text-muted-foreground text-lg font-medium">Database seluruh siswa SLB YPAC.</p>
                             </div>
-                            
                             <Button onClick={() => openModal()} className="bg-primary text-primary-foreground font-bold rounded-2xl h-14 px-8 text-lg shadow-lg shadow-orange-200 hover:bg-primary/90 transition-all active:scale-95">
                                 <Plus className="mr-2 h-6 w-6" strokeWidth={3} /> Tambah Siswa Baru
                             </Button>
                         </div>
 
-                        {/* LIST SISWA */}
                         <Card className="rounded-[2.5rem] border-2 border-border/60 shadow-sm overflow-hidden bg-white">
                             <div className="p-6 border-b border-border/60 bg-muted/10">
                                 <div className="relative w-full md:w-96">
@@ -155,8 +162,6 @@ export default function ManajemenPeserta({ auth, students }: { auth: any, studen
                                     <TableBody>
                                         {filteredStudents.length > 0 ? filteredStudents.map((student) => (
                                             <TableRow key={student.id} className="hover:bg-orange-50/30 transition-colors border-border/60 group">
-                                                
-                                                {/* KOLOM NAMA (Email dihapus) */}
                                                 <TableCell className="pl-8 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
@@ -165,10 +170,10 @@ export default function ManajemenPeserta({ auth, students }: { auth: any, studen
                                                         </Avatar>
                                                         <div>
                                                             <p className="font-bold text-base text-foreground group-hover:text-primary transition-colors">{student.name}</p>
+                                                            <p className="text-xs text-muted-foreground">{student.email}</p>
                                                         </div>
                                                     </div>
                                                 </TableCell>
-
                                                 <TableCell>
                                                     <div className="flex flex-col items-start gap-1.5">
                                                         <div className="flex items-center gap-2">
@@ -178,56 +183,35 @@ export default function ManajemenPeserta({ auth, students }: { auth: any, studen
                                                         {student.disability ? (
                                                             <div className="flex items-center gap-2">
                                                                 <Accessibility size={14} className="text-slate-400" />
-                                                                <Badge variant="secondary" className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border-0">
-                                                                    {student.disability}
-                                                                </Badge>
+                                                                <Badge variant="secondary" className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border-0">{student.disability}</Badge>
                                                             </div>
                                                         ) : <span className="text-xs text-muted-foreground italic pl-6">-</span>}
                                                     </div>
                                                 </TableCell>
-
                                                 <TableCell>
                                                     {student.kelas_nama !== 'Belum ada kelas' ? (
-                                                        <Badge variant="outline" className="bg-white border-2 border-green-200 text-green-700 font-bold rounded-lg text-[10px] px-2 py-1">
-                                                            Aktif: {student.kelas_nama}
-                                                        </Badge>
-                                                    ) : (
-                                                        <span className="text-xs text-slate-400 italic">Belum masuk kelas</span>
-                                                    )}
+                                                        <Badge variant="outline" className="bg-white border-2 border-green-200 text-green-700 font-bold rounded-lg text-[10px] px-2 py-1">Aktif: {student.kelas_nama}</Badge>
+                                                    ) : <span className="text-xs text-slate-400 italic">Belum masuk kelas</span>}
                                                 </TableCell>
-
                                                 <TableCell className="pr-8 text-right">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full"><MoreHorizontal className="h-4 w-4" /></Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end" className="rounded-xl border-2 shadow-lg w-48">
                                                             <DropdownMenuLabel>Aksi Siswa</DropdownMenuLabel>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem asChild>
-                                                                <Link href={`/pengajar/siswa/${student.id}`} className="cursor-pointer font-medium">
-                                                                    <Eye className="mr-2 h-4 w-4" /> Lihat Detail & Nilai
-                                                                </Link>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => openModal(student)} className="cursor-pointer font-medium">
-                                                                <Edit2 className="mr-2 h-4 w-4" /> Edit Biodata
-                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => openModal(student)} className="cursor-pointer font-medium"><Edit2 className="mr-2 h-4 w-4" /> Edit Biodata</DropdownMenuItem>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem onClick={() => handleDelete(student.id)} className="cursor-pointer font-medium text-red-600 focus:text-red-600 focus:bg-red-50">
-                                                                <Trash2 className="mr-2 h-4 w-4" /> Hapus Siswa
-                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleDelete(student.id)} className="cursor-pointer font-medium text-red-600 focus:text-red-600 focus:bg-red-50"><Trash2 className="mr-2 h-4 w-4" /> Hapus Siswa</DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </TableCell>
-
                                             </TableRow>
                                         )) : (
                                             <TableRow>
                                                 <TableCell colSpan={4} className="h-40 text-center text-muted-foreground">
-                                                    <User size={48} className="mb-2 opacity-20 mx-auto" />
-                                                    <p>Tidak ada siswa ditemukan.</p>
+                                                    <User size={48} className="mb-2 opacity-20 mx-auto" /><p>Tidak ada siswa ditemukan.</p>
                                                 </TableCell>
                                             </TableRow>
                                         )}
@@ -238,55 +222,49 @@ export default function ManajemenPeserta({ auth, students }: { auth: any, studen
                     </div>
                 </div>
 
-                {/* MODAL FORM (Ringkas: Nama, Jenjang, Disabilitas) */}
+                {/* MODAL FORM */}
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                     <DialogContent className="rounded-[2.5rem] p-8 sm:max-w-[500px] border-2 border-border bg-card">
                         <DialogHeader>
-                            <DialogTitle className="text-3xl font-black text-foreground">
-                                {editingStudent ? "Edit Biodata" : "Tambah Siswa Baru"}
-                            </DialogTitle>
+                            <DialogTitle className="text-3xl font-black text-foreground">{editingId ? "Edit Biodata" : "Tambah Siswa Baru"}</DialogTitle>
                         </DialogHeader>
                         
                         <div className="space-y-4 py-4">
+                            {/* Error Global Alert */}
+                            {Object.keys(errors).length > 0 && (
+                                <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-xl flex items-center gap-2 text-sm font-bold animate-in fade-in slide-in-from-top-1">
+                                    <AlertCircle size={18} />
+                                    <span>Gagal menyimpan. Periksa isian.</span>
+                                </div>
+                            )}
+
                             <div className="grid gap-2">
                                 <Label className="font-bold ml-1">Nama Lengkap</Label>
-                                <Input 
-                                    className="pl-4 rounded-xl border-2 h-12 font-medium" 
-                                    placeholder="Nama siswa..." 
-                                    value={formData.name} 
-                                    onChange={e => setFormData({...formData, name: e.target.value})} 
-                                />
+                                <Input className={`pl-4 rounded-xl border-2 h-12 font-medium ${errors.name ? 'border-red-300 bg-red-50' : ''}`} placeholder="Nama siswa..." value={data.name} onChange={e => setData('name', e.target.value)} />
+                                {errors.name && <span className="text-red-500 text-xs ml-1 font-bold">{errors.name}</span>}
                             </div>
 
                             <div className="grid gap-2">
                                 <Label className="font-bold ml-1">Jenjang Kelas</Label>
-                                <Input 
-                                    className="pl-4 rounded-xl border-2 h-12 font-medium" 
-                                    placeholder="Contoh: Kelas 1 SMA / 7 SMP" 
-                                    value={formData.school_grade} 
-                                    onChange={e => setFormData({...formData, school_grade: e.target.value})} 
-                                />
+                                <Input className={`pl-4 rounded-xl border-2 h-12 font-medium ${errors.school_grade ? 'border-red-300 bg-red-50' : ''}`} placeholder="Contoh: Kelas 1 SMA / 7 SMP" value={data.school_grade} onChange={e => setData('school_grade', e.target.value)} />
+                                {errors.school_grade && <span className="text-red-500 text-xs ml-1 font-bold">{errors.school_grade}</span>}
                             </div>
 
                             <div className="grid gap-2">
                                 <Label className="font-bold ml-1">Ragam Disabilitas</Label>
-                                <Input 
-                                    className="pl-4 rounded-xl border-2 h-12 font-medium" 
-                                    placeholder="Contoh: Tunarungu, Tunadaksa..." 
-                                    value={formData.disability} 
-                                    onChange={e => setFormData({...formData, disability: e.target.value})} 
-                                />
+                                <Input className={`pl-4 rounded-xl border-2 h-12 font-medium ${errors.disability ? 'border-red-300 bg-red-50' : ''}`} placeholder="Contoh: Tunarungu, Tunadaksa..." value={data.disability} onChange={e => setData('disability', e.target.value)} />
+                                {errors.disability && <span className="text-red-500 text-xs ml-1 font-bold">{errors.disability}</span>}
                             </div>
                         </div>
 
                         <DialogFooter>
-                            <Button onClick={handleSubmit} className="w-full h-14 rounded-2xl font-bold text-lg shadow-lg bg-primary hover:bg-primary/90">
-                                {editingStudent ? "Simpan Perubahan" : "Simpan Data"}
+                            <Button onClick={handleSubmit} disabled={processing} className="w-full h-14 rounded-2xl font-bold text-lg shadow-lg bg-primary hover:bg-primary/90">
+                                {processing ? <Loader2 className="animate-spin mr-2"/> : null}
+                                {editingId ? "Simpan Perubahan" : "Simpan Data"}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-
             </main>
         </div>
     );

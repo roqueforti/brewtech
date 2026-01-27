@@ -1,127 +1,83 @@
-import { Play, Trophy, ChevronRight, CheckCircle2, Star, Sparkles } from "lucide-react";
 import { Button } from "@/Components/ui/button";
-import { Card, CardContent } from "@/Components/ui/card";
+import { PlayCircle, Trophy, BookOpen, Clock } from "lucide-react";
 
-interface Props {
-    type: 'intro' | 'pre_result' | 'post_result';
-    moduleData?: any;
-    score?: number;
-    onAction: () => void;
-}
+export default function IntroResultView({ type, moduleData, score, onAction }: any) {
+    const isIntro = type === 'intro';
+    const isPreResult = type === 'pre_result';
+    const isPostResult = type === 'post_result';
 
-export default function IntroResultView({ type, moduleData, score, onAction }: Props) {
     return (
-        <div className="relative flex-1 overflow-y-auto scroll-smooth flex flex-col items-center justify-center p-6 bg-[#FAFAF9]">
-            
-            <div className="relative z-10 w-full max-w-2xl mx-auto text-center">
+        <div className="flex-1 overflow-y-auto relative bg-[#FAFAF9]">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 z-0 opacity-5 bg-[radial-gradient(#5BCCEA_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+            <div className="relative z-10 flex flex-col items-center justify-center min-h-full p-6 text-center">
                 
-                {/* =======================
-                    1. TAMPILAN INTRO
-                   ======================= */}
-                {type === 'intro' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-8">
-                        {/* Emoji Container */}
-                        <div className="relative inline-block group cursor-default">
-                            <div className="relative text-[8rem] drop-shadow-xl animate-bounce-slow">
-                                {moduleData?.emoji || '🎓'}
+                {/* --- INTRO VIEW --- */}
+                {isIntro && (
+                    <div className="max-w-lg w-full space-y-8 animate-in zoom-in-95 duration-500">
+                        <div className="relative group mx-auto w-fit">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                            <div className="relative w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl">
+                                <BookOpen size={48} className="text-cyan-500" />
                             </div>
                         </div>
-
+                        
                         <div className="space-y-4">
-                            <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight leading-tight">
-                                {moduleData?.title || "Judul Modul"}
+                            <h1 className="text-4xl md:text-5xl font-black text-slate-800 leading-tight">
+                                {moduleData.title}
                             </h1>
-                            <p className="text-lg text-slate-500 font-medium max-w-xl mx-auto leading-relaxed">
-                                {moduleData?.description || "Deskripsi singkat mengenai modul pembelajaran ini."}
+                            <p className="text-lg text-slate-500 leading-relaxed">
+                                {moduleData.description || "Siap untuk meningkatkan keahlian Baristamu hari ini?"}
                             </p>
                         </div>
 
-                        <div className="pt-4">
-                            <Button 
-                                size="lg" 
-                                onClick={onAction}
-                                className="h-14 px-10 rounded-2xl font-bold text-lg shadow-lg bg-orange-500 hover:bg-orange-600 hover:scale-[1.02] transition-all duration-300"
-                            >
-                                <Play className="mr-2 h-5 w-5 fill-current" /> Mulai Belajar
-                            </Button>
+                        <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center">
+                                <span className="text-2xl font-black text-slate-800">{moduleData.steps?.length || 0}</span>
+                                <span className="text-xs font-bold text-slate-400 uppercase">Langkah</span>
+                            </div>
+                            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center">
+                                <span className="text-2xl font-black text-slate-800">~15</span>
+                                <span className="text-xs font-bold text-slate-400 uppercase">Menit</span>
+                            </div>
                         </div>
+
+                        <Button onClick={onAction} className="w-full h-14 text-lg font-black bg-cyan-500 hover:bg-cyan-600 text-white rounded-2xl shadow-[0px_4px_0px_#22d3ee] active:translate-y-1 active:shadow-none transition-all">
+                            Mulai Belajar Sekarang <PlayCircle className="ml-2" />
+                        </Button>
                     </div>
                 )}
 
-                {/* =======================
-                    2. RESULT PRE-TEST
-                   ======================= */}
-                {type === 'pre_result' && (
-                    <div className="animate-in zoom-in-95 duration-500 w-full max-w-lg mx-auto">
-                        <Card className="border-2 border-slate-200 shadow-sm bg-white overflow-hidden rounded-[2.5rem]">
-                            <CardContent className="p-10 flex flex-col items-center">
-                                <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-6 border-2 border-blue-100">
-                                    <CheckCircle2 size={40} className="text-blue-600" />
-                                </div>
-                                
-                                <h2 className="text-2xl font-black text-slate-800 mb-2">Pre-Test Selesai!</h2>
-                                <p className="text-slate-500 font-medium mb-8">
-                                    Kemampuan awalmu sudah tercatat.
-                                </p>
+                {/* --- RESULT VIEW --- */}
+                {(isPreResult || isPostResult) && (
+                    <div className="max-w-md w-full space-y-8 animate-in slide-in-from-bottom-10 duration-500">
+                        <div className="w-32 h-32 mx-auto bg-yellow-100 rounded-full flex items-center justify-center animate-bounce">
+                            <Trophy size={64} className="text-yellow-500" />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <h2 className="text-3xl font-black text-slate-800">
+                                {isPreResult ? "Pre-Test Selesai!" : "Modul Tuntas!"}
+                            </h2>
+                            <p className="text-slate-500 font-medium">
+                                {isPreResult ? "Hasil awal kamu cukup bagus. Yuk lanjut belajar!" : "Selamat! Kamu telah menyelesaikan modul ini."}
+                            </p>
+                        </div>
 
-                                <div className="w-full bg-slate-50 rounded-[1.5rem] p-6 mb-8 border-2 border-slate-100 relative overflow-hidden group">
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Skor Kamu</p>
-                                    <div className="text-5xl font-black text-slate-800">
-                                        {score ?? 0}<span className="text-2xl text-slate-300 ml-1">/100</span>
-                                    </div>
-                                </div>
+                        <div className="bg-white p-8 rounded-[2rem] border-2 border-slate-100 shadow-xl">
+                            <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Skor Simulasi</span>
+                            <div className="text-7xl font-black text-cyan-500 mt-2 mb-2">{score}</div>
+                            <div className="inline-block px-3 py-1 bg-cyan-50 text-cyan-700 text-xs font-bold rounded-full">
+                                {score >= 70 ? "KOMPETEN" : "PERLU LATIHAN"}
+                            </div>
+                        </div>
 
-                                <Button 
-                                    size="lg" 
-                                    onClick={onAction}
-                                    className="w-full h-12 rounded-xl font-bold text-base bg-slate-900 hover:bg-slate-800 text-white shadow-lg transition-transform active:scale-95"
-                                >
-                                    Masuk ke Materi <ChevronRight className="ml-2 h-5 w-5"/>
-                                </Button>
-                            </CardContent>
-                        </Card>
+                        <Button onClick={onAction} className="w-full h-14 text-lg font-black bg-slate-800 hover:bg-slate-900 text-white rounded-2xl shadow-lg">
+                            {isPreResult ? "Lanjut ke Materi" : "Kembali ke Beranda"}
+                        </Button>
                     </div>
                 )}
-
-                {/* =======================
-                    3. RESULT POST-TEST (FINAL)
-                   ======================= */}
-                {type === 'post_result' && (
-                    <div className="animate-in zoom-in-95 duration-700 w-full max-w-lg mx-auto relative">
-                        <Card className="border-2 border-slate-200 shadow-sm bg-white overflow-hidden rounded-[2.5rem] relative z-10">
-                            <CardContent className="p-10 flex flex-col items-center">
-                                <div className="relative mb-6">
-                                    <div className="relative w-24 h-24 rounded-full bg-orange-50 border-2 border-orange-100 flex items-center justify-center">
-                                        <Trophy size={48} className="text-orange-500" />
-                                        <Sparkles className="absolute -top-2 -right-2 text-yellow-400 animate-bounce" size={20} fill="currentColor" />
-                                    </div>
-                                </div>
-                                
-                                <h2 className="text-3xl font-black text-slate-800 mb-2">Luar Biasa! 🎉</h2>
-                                <p className="text-slate-500 font-medium mb-8">
-                                    Kamu telah menyelesaikan modul ini.
-                                </p>
-
-                                <div className="w-full bg-orange-50 rounded-[1.5rem] p-6 mb-8 border-2 border-orange-100 relative overflow-hidden text-center">
-                                    <p className="text-xs font-extrabold text-orange-400 uppercase tracking-widest mb-1">Nilai Akhir</p>
-                                    <div className="text-6xl font-black text-orange-600">
-                                        {score ?? 0}
-                                    </div>
-                                    <div className="text-sm font-bold text-orange-400 mt-2">Kompeten!</div>
-                                </div>
-
-                                <Button 
-                                    size="lg" 
-                                    onClick={onAction}
-                                    className="w-full h-14 rounded-2xl font-bold text-base bg-slate-900 hover:bg-slate-800 text-white shadow-lg transition-all hover:-translate-y-1"
-                                >
-                                    Kembali ke Dashboard
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
-
             </div>
         </div>
     );

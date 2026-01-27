@@ -25,17 +25,15 @@ class ModuleController extends Controller
             ->latest()
             ->get();
 
-        // Ambil Data Setting Global Soft Skills
         $rawSoftSkills = Setting::where('key', 'global_soft_skills')->value('value');
         $globalSoftSkills = $rawSoftSkills ? json_decode($rawSoftSkills) : ['Kedisiplinan', 'Kerapian'];
 
-        return Inertia::render('Pengajar/Modul/Index', [ // Sesuaikan path jika file index dipindah
+        return Inertia::render('Pengajar/Modul/Index', [
             'modules' => $modules,
             'globalSoftSkills' => $globalSoftSkills
         ]);
     }
 
-    // Update Kriteria Global Soft Skills
     public function updateGlobalSoftSkills(Request $request)
     {
         $request->validate([
@@ -66,16 +64,13 @@ class ModuleController extends Controller
         return redirect()->back()->with('success', 'Modul berhasil dibuat! Silakan edit untuk menambah materi.');
     }
 
-public function edit($id)
-{
-    $module = Module::with(['pre_test_questions', 'post_test_questions'])->findOrFail($id);
+    public function edit($id)
+    {
+        $module = Module::with(['steps', 'pre_test_questions', 'post_test_questions', 'tools'])->findOrFail($id);
+        return Inertia::render('Pengajar/Modul/Edit', ['module' => $module]);
+    }
 
-    // Arahkan ke folder Pages/Pengajar/Modul/Edit
-    return Inertia::render('Pengajar/Modul/Edit', [
-        'module' => $module
-    ]);
-}
-
+    // ✅ UPDATE METHOD (FIXED & ROBUST)
     public function update(Request $request, $id)
     {
         DB::transaction(function () use ($request, $id) {
@@ -83,66 +78,127 @@ public function edit($id)
 
             // 1. Update Info Dasar
             $module->update([
-                'title' => $request->title,
+                'title' => $request->title ?? $module->title,
                 'description' => $request->description,
+                'tools_materials' => $request->tools_materials ?? null,
             ]);
 
-            // 2. Handle Steps
-            $module->steps()->delete(); 
-            if ($request->steps) {
-                foreach ($request->steps as $stepData) {
-                    $path = $this->handleFileUpload($stepData['media_file'] ?? null, $stepData['media_url'] ?? null, 'module_steps');
-                    $type = $stepData['media_type'] ?? 'image';
-                    if (isset($stepData['media_file']) && $stepData['media_file'] instanceof \Illuminate\Http\UploadedFile) {
-                        $mime = $stepData['media_file']->getMimeType();
+            // 2. Handle Tools (Alat & Bahan)
+            $module->tools()->delete();
+            if ($request->tools && is_array($request->tools)) {
+                foreach ($request->tools as $toolData) {
+                    $path = $this->handleFileUpload(
+                        $toolData['media_file'] ?? null,
+                        $toolData['media_url'] ?? null,
+                        'module_tools'
+                    );
+
+                    $type = 'image';
+                    if (isset($toolData['media_file']) && $toolData['media_file'] instanceof \Illuminate\Http\UploadedFile) {
+                        $mime = $toolData['media_file']->getMimeType();
                         $type = str_contains($mime, 'video') ? 'video' : 'image';
                     }
 
-                    $module->steps()->create([
-                        'title' => $stepData['title'],
-                        'description' => $stepData['description'],
+                    $module->tools()->create([
+                        'name' => $toolData['name'] ?? 'Alat Baru', // Fix undefined
                         'media_url' => $path,
                         'media_type' => $path ? $type : null,
                     ]);
                 }
             }
 
-            // 3. Handle Questions
+            // 3. Handle Steps (Langkah)
+            $module->steps()->delete();
+            if ($request->steps && is_array($request->steps)) {
+                foreach ($request->steps as $stepData) {
+                    $path = $this->handleFileUpload(
+                        $stepData['media_file'] ?? null,
+                        $stepData['media_url'] ?? null,
+                        'module_steps'
+                    );
+
+                    $type = 'image';
+                    if (isset($stepData['media_file']) && $stepData['media_file'] instanceof \Illuminate\Http\UploadedFile) {
+                        $mime = $stepData['media_file']->getMimeType();
+                        $type = str_contains($mime, 'video') ? 'video' : 'image';
+                    }
+
+                    $module->steps()->create([
+                        'title' => $stepData['title'] ?? 'Langkah', // Fix undefined
+                        'description' => $stepData['description'] ?? '',
+                        'media_url' => $path,
+                        'media_type' => $path ? $type : null,
+                    ]);
+                }
+            }
+
+            // 4. Handle Questions (Pre & Post Test) - FIX ARRAY KEY & FILE UPLOAD
             $module->questions()->delete();
-            if ($request->questions) {
-                foreach ($request->questions as $qData) {
-                    $mainPath = $this->handleFileUpload($qData['media_file'] ?? null, $qData['media_url'] ?? null, 'module_questions');
-                    $mainType = $qData['media_type'] ?? null;
-                    if (isset($qData['media_file']) && $qData['media_file'] instanceof \Illuminate\Http\UploadedFile) {
-                        $mime = $qData['media_file']->getMimeType();
+            
+            if ($request->questions && is_array($request->questions)) {
+                // Gunakan $key untuk akses file nested secara akurat
+                foreach ($request->questions as $key => $qData) {
+                    
+                    // A. Handle Media Soal Utama
+                    $mainPath = null;
+                    $mainType = null;
+
+                    // Cek apakah ada file baru di request
+                    if ($request->hasFile("questions.{$key}.media_file")) {
+                        $file = $request->file("questions.{$key}.media_file");
+                        $mainPath = '/storage/' . $file->store('module_questions', 'public');
+                        $mime = $file->getMimeType();
                         $mainType = str_contains($mime, 'video') ? 'video' : 'image';
+                    } else {
+                        // Jika tidak ada file baru, gunakan URL lama (validasi blob)
+                        $oldUrl = $qData['media_url'] ?? null;
+                        if ($oldUrl && !str_starts_with($oldUrl, 'blob:')) {
+                            $mainPath = $oldUrl;
+                            $mainType = 'image'; 
+                        }
                     }
 
+                    // B. Handle Options & Media Options
+                    $optionsText = [];
                     $optionsMedia = [];
-                    $files = $qData['options_media_files'] ?? [null, null, null, null];
-                    $existingUrls = $qData['options_media'] ?? [null, null, null, null];
+                    $existingOptions = $qData['options'] ?? [];
 
+                    // Loop 4 Opsi
                     for ($i = 0; $i < 4; $i++) {
-                        $oldUrl = null;
-                        if (isset($existingUrls[$i]) && is_array($existingUrls[$i]) && isset($existingUrls[$i]['url'])) {
-                            $oldUrl = $existingUrls[$i]['url'];
+                        $optPath = null;
+
+                        // 1. Cek File Baru untuk Opsi ke-i
+                        if ($request->hasFile("questions.{$key}.options_media_files.{$i}")) {
+                            $file = $request->file("questions.{$key}.options_media_files.{$i}");
+                            $optPath = '/storage/' . $file->store('module_options', 'public');
+                        } 
+                        // 2. Jika tidak, Cek URL Lama
+                        else if (isset($existingOptions[$i]['media_url'])) {
+                            $oldOptUrl = $existingOptions[$i]['media_url'];
+                            if ($oldOptUrl && !str_starts_with($oldOptUrl, 'blob:')) {
+                                $optPath = $oldOptUrl;
+                            }
                         }
-                        $optPath = $this->handleFileUpload($files[$i] ?? null, $oldUrl, 'module_options');
-                        if ($optPath) {
-                            $optionsMedia[$i] = ['url' => $optPath, 'type' => 'image']; 
-                        } else {
-                            $optionsMedia[$i] = null;
-                        }
+
+                        $optionsMedia[$i] = $optPath;
+
+                        // Reconstruct JSON Object untuk Opsi
+                        $optionsText[] = [
+                            'text' => $existingOptions[$i]['text'] ?? '',
+                            'media_url' => $optPath
+                        ];
                     }
 
+                    // C. Simpan ke Database
                     $module->questions()->create([
-                        'type' => $qData['type'],
-                        'question' => $qData['question'],
-                        'options' => $qData['options'],
-                        'correct_answer' => $qData['correct_answer'],
+                        // Gunakan ?? Default Value untuk mencegah error Undefined Index
+                        'type' => $qData['type'] ?? 'pre_test',
+                        'question' => $qData['question'] ?? 'Pertanyaan...',
+                        'options' => $optionsText, // JSON
+                        'correct_answer' => $qData['correct_answer'] ?? 0,
                         'media_url' => $mainPath,
                         'media_type' => $mainPath ? $mainType : null,
-                        'options_media' => $optionsMedia,
+                        'options_media' => $optionsMedia, // Backup
                     ]);
                 }
             }
@@ -158,27 +214,21 @@ public function edit($id)
         return redirect()->back()->with('success', 'Modul dihapus.');
     }
 
-    // ✅ UPDATE: Mengarah ke Page Preview Pengajar yang baru
     public function preview($id)
     {
-        $module = Module::with(['steps', 'questions'])->findOrFail($id);
-        
-        return Inertia::render('Pengajar/Modul/Preview', [ // Path file React: Pengajar/Modul/Preview.tsx
-            'module' => $module,
-            // Tidak perlu kirim progress karena ini preview murni
-        ]);
+        $module = Module::with(['steps', 'pre_test_questions', 'post_test_questions', 'tools'])->findOrFail($id);
+        return Inertia::render('Pengajar/Modul/Preview', ['module' => $module]);
     }
 
     // =======================================================================
     // 2. AREA PESERTA (STUDENT) & API
     // =======================================================================
 
-    // ✅ UPDATE: Mengarah ke Page Play Peserta yang baru
     public function play($id)
     {
         $user = Auth::user();
-        $module = Module::with(['steps', 'questions'])->findOrFail($id);
-        
+        $module = Module::with(['steps', 'pre_test_questions', 'post_test_questions', 'tools'])->findOrFail($id);
+
         $progress = StudentModuleProgress::firstOrCreate(
             ['user_id' => $user->id, 'module_id' => $module->id],
             ['status' => 'pending']
@@ -188,7 +238,7 @@ public function edit($id)
             $progress->update(['status' => 'in_progress']);
         }
 
-        return Inertia::render('Peserta/Workshop/Play', [ // Path file React: Peserta/Workshop/Play.tsx
+        return Inertia::render('Peserta/Workshop/Play', [
             'auth' => ['user' => $user],
             'module' => $module,
             'progress' => $progress,
@@ -198,37 +248,30 @@ public function edit($id)
     public function getSteps($id) { return response()->json(ModuleStep::where('module_id', $id)->get()); }
     public function getQuiz($id, $type) { return response()->json(ModuleQuestion::where('module_id', $id)->where('type', $type)->get()); }
 
-    // ✅ UPDATE: Menghitung skor di Backend berdasarkan jawaban yang dikirim
     public function submitQuiz(Request $request, $id)
     {
         $request->validate([
             'type' => 'required|in:pre_test,post_test',
-            'answers' => 'required|array' // Terima array jawaban: {question_id: answer_index}
+            'answers' => 'required|array'
         ]);
 
-        // 1. Ambil Kunci Jawaban dari Database
         $questions = ModuleQuestion::where('module_id', $id)
-                    ->where('type', $request->type)
-                    ->get();
+            ->where('type', $request->type)
+            ->get();
 
         $totalQuestions = $questions->count();
         $correctCount = 0;
 
-        // 2. Hitung Nilai
         foreach ($questions as $q) {
-            // Cek apakah jawaban user ada dan sesuai kunci (index)
-            if (isset($request->answers[$q->id]) && 
-                (int)$request->answers[$q->id] === (int)$q->correct_answer) {
+            if (isset($request->answers[$q->id]) && (int)$request->answers[$q->id] === (int)$q->correct_answer) {
                 $correctCount++;
             }
         }
 
-        // Skor 0-100
         $finalScore = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
 
-        // 3. Simpan Progress
         $progress = StudentModuleProgress::firstOrCreate(
-            ['user_id' => Auth::id(), 'module_id' => $id], 
+            ['user_id' => Auth::id(), 'module_id' => $id],
             ['status' => 'in_progress']
         );
 
@@ -236,14 +279,10 @@ public function edit($id)
             $progress->pretest_score = $finalScore;
         } else {
             $progress->posttest_score = $finalScore;
-            // Syarat lulus: Skor >= 70
-            if ($finalScore >= 70) {
-                $progress->status = 'completed';
-            }
+            if ($finalScore >= 70) $progress->status = 'completed';
         }
-        
-        $progress->save();
 
+        $progress->save();
         return redirect()->back()->with('success', 'Jawaban terkirim! Nilai Anda: ' . $finalScore);
     }
 
@@ -251,7 +290,7 @@ public function edit($id)
     {
         $request->validate(['photo' => 'required|image|max:5120']);
         $progress = StudentModuleProgress::where('user_id', Auth::id())->where('module_id', $id)->firstOrFail();
-        
+
         if ($request->hasFile('photo')) {
             if ($progress->photo_url) Storage::disk('public')->delete($progress->photo_url);
             $progress->photo_url = $request->file('photo')->store('submissions', 'public');
@@ -260,11 +299,18 @@ public function edit($id)
         return redirect()->back()->with('success', 'Bukti praktik berhasil diunggah!');
     }
 
-    private function handleFileUpload($newFile, $oldUrl, $folder)
+    /**
+     * Helper Basic (Untuk Tools & Steps)
+     */
+    private function handleFileUpload($newFile, $existingUrl, $folder)
     {
         if ($newFile && $newFile instanceof \Illuminate\Http\UploadedFile) {
-            return '/storage/' . $newFile->store($folder, 'public'); 
+            return '/storage/' . $newFile->store($folder, 'public');
         }
-        return (is_string($oldUrl)) ? $oldUrl : null;
+        if ($existingUrl) {
+            if (str_starts_with($existingUrl, 'blob:')) return null;
+            return $existingUrl;
+        }
+        return null;
     }
 }

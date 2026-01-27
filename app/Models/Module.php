@@ -27,14 +27,14 @@ class Module extends Model
 
     // ✅ TAMBAHKAN INI: Relasi Khusus Pre-Test
     // Mengambil data dari tabel module_questions dimana kolom type = 'pre_test'
-    public function pre_test_questions(): HasMany
+// ✅ RELASI KHUSUS PRE-TEST (Penting!)
+    public function pre_test_questions()
     {
         return $this->hasMany(ModuleQuestion::class)->where('type', 'pre_test');
     }
 
-    // ✅ TAMBAHKAN INI: Relasi Khusus Post-Test
-    // Mengambil data dari tabel module_questions dimana kolom type = 'post_test'
-    public function post_test_questions(): HasMany
+    // ✅ RELASI KHUSUS POST-TEST (Penting!)
+    public function post_test_questions()
     {
         return $this->hasMany(ModuleQuestion::class)->where('type', 'post_test');
     }
@@ -43,4 +43,9 @@ class Module extends Model
     public function kelas() {
         return $this->belongsToMany(Kelas::class, 'kelas_module', 'module_id', 'kelas_id');
     }
+
+    public function tools()
+{
+    return $this->hasMany(ModuleTool::class);
+}
 }

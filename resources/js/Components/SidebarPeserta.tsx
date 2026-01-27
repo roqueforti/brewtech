@@ -1,4 +1,4 @@
-import { Link, usePage } from "@inertiajs/react";
+import { Link, usePage } from '@inertiajs/react';
 import { 
     LayoutDashboard, 
     User, 
@@ -6,82 +6,98 @@ import {
     Map, 
     LogOut, 
     Coffee 
-} from "lucide-react";
+} from 'lucide-react';
 
-import { cn } from "@/lib/utils"; 
-
-// Mendeklarasikan route agar tidak merah
+// Definisi helper route agar tidak merah di TypeScript
 declare function route(name: string): string;
 
 export default function SidebarPeserta() {
+    // Menggunakan usePage untuk mengecek URL aktif agar menu bisa highlight otomatis
     const { url } = usePage();
 
-    // ✅ MENU KHUSUS PESERTA
-    const navItems = [
-        { name: 'Dashboard', href: '/peserta/dashboard', icon: LayoutDashboard },
-        { name: 'Profil Saya', href: '/peserta/profil', icon: User },
-        { name: 'Nilai & SPK', href: '/peserta/nilai-spk', icon: Award },
-        { name: 'Alur Belajar', href: '/peserta/workshop-flow', icon: Map },
-    ];
+    // Helper untuk cek link aktif
+    const isActive = (path: string) => url.startsWith(path);
 
     return (
-        <aside className="hidden md:flex flex-col w-72 bg-card border-r-2 border-border h-screen sticky top-0 p-6 shadow-sm z-50">
-            {/* Logo Section */}
-            <div className="flex items-center gap-3 px-2 mb-10">
-                <div className="p-2.5 bg-primary rounded-xl shadow-lg shadow-orange-500/20 rotate-3">
-                    <Coffee className="text-primary-foreground h-7 w-7" strokeWidth={3} />
-                </div>
-                <div>
-                    <h1 className="text-2xl font-black text-foreground tracking-tight leading-none">
-                        BREW<span className="text-primary">TECH</span>
-                    </h1>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                        Student Panel {/* ✅ Ganti jadi Student Panel */}
-                    </p>
+        <aside className="w-64 bg-white h-full border-r border-slate-200 flex flex-col fixed left-0 top-0 z-50 shadow-sm">
+            {/* 1. LOGO SECTION */}
+            <div className="p-8 pb-4">
+                <div className="flex items-center gap-3 text-cyan-600">
+                    <div className="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-cyan-200">
+                       <Coffee size={24} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <h1 className="font-black text-xl tracking-tight text-slate-800 leading-none">BREWTECH</h1>
+                        <p className="text-[10px] font-bold text-slate-400 tracking-widest mt-1">STUDENT PANEL</p>
+                    </div>
                 </div>
             </div>
 
-            {/* Navigation Menu */}
-            <nav className="flex-1 space-y-2">
-                {navItems.map((item) => {
-                    const isActive = url.startsWith(item.href);
-                    const Icon = item.icon;
+            {/* 2. MENU NAVIGATION */}
+            <nav className="flex-1 px-6 space-y-2 mt-6">
+                <Link 
+                    href={route('peserta.dashboard')} 
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200
+                        ${isActive('/peserta/dashboard') 
+                            ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200 translate-x-1' 
+                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                        }
+                    `}
+                >
+                    <LayoutDashboard size={20} /> 
+                    <span>Dashboard</span>
+                </Link>
 
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                                "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 font-bold group relative overflow-hidden",
-                                isActive 
-                                    ? "bg-primary text-primary-foreground shadow-md shadow-orange-500/20 translate-x-1" 
-                                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:translate-x-1"
-                            )}
-                        >
-                            <Icon 
-                                size={22} 
-                                strokeWidth={2.5}
-                                className={cn(
-                                    "transition-colors",
-                                    isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
-                                )}
-                            />
-                            <span className="relative z-10">{item.name}</span>
-                        </Link>
-                    );
-                })}
+                <Link 
+                    href="#" 
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200
+                        ${isActive('/peserta/profil') 
+                            ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200 translate-x-1' 
+                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                        }
+                    `}
+                >
+                    <User size={20} /> 
+                    <span>Profil Saya</span>
+                </Link>
+
+                <Link 
+                    href="#" 
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200
+                        ${isActive('/peserta/nilai') 
+                            ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200 translate-x-1' 
+                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                        }
+                    `}
+                >
+                    <Award size={20} /> 
+                    <span>Nilai & SPK</span>
+                </Link>
+
+                <Link 
+                    href="#" 
+                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200
+                        ${isActive('/peserta/alur') 
+                            ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200 translate-x-1' 
+                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                        }
+                    `}
+                >
+                    <Map size={20} /> 
+                    <span>Alur Belajar</span>
+                </Link>
             </nav>
 
-            {/* Logout Section */}
-            <div className="mt-auto pt-6 border-t-2 border-border">
-                <Link
-                    href={route('logout')}
-                    method="post"
-                    as="button"
-                    className="flex items-center gap-3 px-4 py-3.5 w-full rounded-2xl text-destructive font-bold hover:bg-destructive/10 transition-colors group"
+            {/* 3. LOGOUT BUTTON (FIXED) */}
+            <div className="p-6 border-t border-slate-100">
+                <Link 
+                    href={route('logout')} 
+                    method="post" // ✅ PENTING: Harus POST agar Laravel memproses logout
+                    as="button"   // ✅ Render sebagai button agar form behavior jalan
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-red-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200 group"
                 >
-                    <LogOut size={22} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform"/>
-                    Keluar Sesi
+                    <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" /> 
+                    <span>Keluar Sesi</span>
                 </Link>
             </div>
         </aside>

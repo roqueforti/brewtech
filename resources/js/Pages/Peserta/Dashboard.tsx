@@ -2,12 +2,12 @@ import { Head, Link } from "@inertiajs/react";
 import SidebarPeserta from "@/Components/SidebarPeserta"; 
 import { 
     BookOpen, CheckCircle2, PlayCircle, Lock, Calendar, 
-    TrendingUp, Award, ChevronRight, Star, Sparkles
+    TrendingUp, Award, ChevronRight, Clock
 } from "lucide-react";
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
 
-// Update route definition to be generic to allow any string
+// Definisi route helper
 declare function route(name: string, params?: any): string;
 
 interface Module {
@@ -18,6 +18,7 @@ interface Module {
     status: 'locked' | 'available' | 'completed';
     theme: 'orange' | 'blue';
     date: string | null;
+    opens_at?: string; // ✅ Tambahan: Untuk menampilkan jadwal
 }
 
 interface Props {
@@ -35,7 +36,6 @@ export default function Dashboard({ auth, workshops, stats }: Props) {
     const progressPercent = totalModules > 0 ? Math.round((stats.completed / totalModules) * 100) : 0;
 
     return (
-        // 1. BACKGROUND CREAM SUSU (bg-background) & TEXT ESPRESSO (text-foreground)
         <div className="flex min-h-screen bg-background font-sans text-foreground selection:bg-primary/30">
             <Head title="Dashboard Peserta" />
             
@@ -46,7 +46,7 @@ export default function Dashboard({ auth, workshops, stats }: Props) {
             <main className="flex-1 p-6 md:p-10 md:ml-64 min-h-screen">
                 <div className="max-w-6xl mx-auto space-y-10 pb-20">
                     
-                    {/* 2. HERO SECTION */}
+                    {/* HERO SECTION */}
                     <div className="relative bg-card rounded-3xl p-8 md:p-10 border-2 border-border shadow-sm overflow-hidden">
                         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-accent/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"></div>
@@ -56,7 +56,7 @@ export default function Dashboard({ auth, workshops, stats }: Props) {
                                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted border-2 border-border/50">
                                     <span className="w-3 h-3 rounded-full bg-primary animate-pulse"></span>
                                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                                        {user.kelas?.nama ?? 'Brewtech Student'}
+                                        {user.kelas?.nama ?? 'Peserta Didik'}
                                     </span>
                                 </div>
                                 
@@ -84,10 +84,10 @@ export default function Dashboard({ auth, workshops, stats }: Props) {
                                 
                                 <div className="h-5 w-full bg-muted rounded-full overflow-hidden p-1 border border-border/30">
                                     <div 
-                                            className="h-full bg-primary rounded-full transition-all duration-1000 ease-out shadow-sm relative overflow-hidden"
-                                            style={{ width: `${progressPercent}%` }}
+                                        className="h-full bg-primary rounded-full transition-all duration-1000 ease-out shadow-sm relative overflow-hidden"
+                                        style={{ width: `${progressPercent}%` }}
                                     >
-                                             <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite] transform -skew-x-12"></div>
+                                        <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite] transform -skew-x-12"></div>
                                     </div>
                                 </div>
                                 <div className="mt-4 flex justify-between text-xs font-bold text-muted-foreground">
@@ -98,7 +98,7 @@ export default function Dashboard({ auth, workshops, stats }: Props) {
                         </div>
                     </div>
 
-                    {/* 3. SUMMARY GRID */}
+                    {/* SUMMARY GRID */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="group bg-card border-2 border-border p-6 rounded-3xl hover:border-secondary/50 transition-all duration-300 hover:shadow-lg hover:shadow-secondary/5 flex items-center gap-6 cursor-default">
                             <div className="w-16 h-16 bg-secondary/10 rounded-2xl flex items-center justify-center text-secondary border-2 border-secondary/20 group-hover:scale-110 transition-transform duration-300 group-hover:rotate-3">
@@ -121,7 +121,7 @@ export default function Dashboard({ auth, workshops, stats }: Props) {
                         </div>
                     </div>
 
-                    {/* 4. COURSE LIST */}
+                    {/* COURSE LIST */}
                     <div>
                         <div className="flex items-center justify-between mb-8">
                             <div>
@@ -186,12 +186,22 @@ export default function Dashboard({ auth, workshops, stats }: Props) {
                                         </div>
 
                                         <div className="mt-auto">
+                                            {/* ✅ LOGIC TOMBOL & JADWAL */}
                                             {modul.status === 'locked' ? (
-                                                <div className="flex items-center justify-center h-14 bg-border/20 rounded-2xl text-muted-foreground font-bold text-sm border-2 border-border cursor-not-allowed select-none">
-                                                    <Lock size={18} className="mr-2" /> Belum Tersedia
+                                                <div className="flex flex-col items-center justify-center h-16 bg-border/20 rounded-2xl text-muted-foreground font-bold text-sm border-2 border-border cursor-not-allowed select-none px-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <Lock size={16} /> 
+                                                        <span>Belum Tersedia</span>
+                                                    </div>
+                                                    {/* Tampilkan Jadwal jika ada */}
+                                                    {modul.opens_at && modul.opens_at !== 'Sekarang' && (
+                                                        <div className="flex items-center gap-1 text-[10px] font-normal mt-1 opacity-80 text-orange-600">
+                                                            <Clock size={10} />
+                                                            <span>Buka: {modul.opens_at}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
-                                                // ✅ PERBAIKAN DI SINI: Gunakan 'workshop.play' (tanpa 'peserta.')
                                                 <Link href={route('workshop.play', modul.id)} className="block w-full">
                                                     <Button className={`w-full rounded-2xl h-14 font-bold text-base shadow-lg transition-all duration-300 flex justify-between items-center px-6 group/btn
                                                         ${modul.status === 'completed' 

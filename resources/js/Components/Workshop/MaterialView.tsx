@@ -1,57 +1,69 @@
-import { Volume2, FileText } from "lucide-react";
 import { Button } from "@/Components/ui/button";
-import { Badge } from "@/Components/ui/badge";
-import { Card } from "@/Components/ui/card";
+import { Volume2 } from "lucide-react";
 
-interface Props {
-    stepData: any;
-    currentIndex: number;
-    totalSteps: number;
-    onSpeak: (text: string) => void;
-}
-
-export default function MaterialView({ stepData, currentIndex, totalSteps, onSpeak }: Props) {
+export default function MaterialView({ stepData, currentIndex, totalSteps, onSpeak }: any) {
     if (!stepData) return null;
 
     return (
-        <div className="flex-1 overflow-y-auto scroll-smooth p-6 md:p-8 bg-[#FAFAF9]">
-            <div className="max-w-4xl mx-auto w-full pb-32">
-                
-                <Card className="rounded-[2.5rem] border-2 border-slate-200 shadow-sm bg-white p-8">
-                    {/* Header Section */}
-                    <div className="flex items-center justify-between mb-6">
-                        <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 px-3 py-1.5 rounded-lg border-2 border-orange-100 font-bold">
-                            Langkah {currentIndex + 1} dari {totalSteps}
-                        </Badge>
-                        <Button variant="outline" size="sm" onClick={() => onSpeak(`${stepData.title}. ${stepData.description}`)} className="rounded-full border-2 border-slate-200 text-slate-600 hover:bg-slate-50">
-                            <Volume2 className="h-4 w-4" />
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+            <div className="max-w-3xl w-full space-y-6 animate-in fade-in duration-500">
+                {/* Step Indicator */}
+                <div className="flex items-center gap-4 mb-4">
+                    <span className="bg-cyan-500 text-white px-4 py-1.5 rounded-full text-sm font-black shadow-cyan-200 shadow-lg">
+                        Langkah {currentIndex + 1} / {totalSteps}
+                    </span>
+                    <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-cyan-500 transition-all duration-500 ease-out"
+                            style={{ width: `${((currentIndex + 1) / totalSteps) * 100}%` }}
+                        ></div>
+                    </div>
+                </div>
+
+                {/* Media Container */}
+                <div className="aspect-video bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl relative group">
+                    {stepData.media_url ? (
+                        stepData.media_type === 'video' || stepData.media_url.endsWith('.mp4') ? (
+                            <video 
+                                src={stepData.media_url} 
+                                className="w-full h-full object-cover" 
+                                controls 
+                                autoPlay 
+                                muted 
+                            />
+                        ) : (
+                            <img 
+                                src={stepData.media_url} 
+                                alt={stepData.title} 
+                                className="w-full h-full object-cover"
+                            />
+                        )
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-slate-500 font-bold bg-slate-100">
+                            Tidak ada media visual
+                        </div>
+                    )}
+                </div>
+
+                {/* Text Content */}
+                <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-4">
+                    <div className="flex justify-between items-start gap-4">
+                        <h2 className="text-2xl md:text-3xl font-black text-slate-800 leading-tight">
+                            {stepData.title}
+                        </h2>
+                        <Button 
+                            variant="secondary" 
+                            size="icon" 
+                            className="rounded-full bg-cyan-50 text-cyan-600 hover:bg-cyan-100 shrink-0"
+                            onClick={() => onSpeak(stepData.description)}
+                        >
+                            <Volume2 size={24} />
                         </Button>
                     </div>
-                    
-                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight mb-8">{stepData.title}</h1>
-                    
-                    {/* Media Container */}
-                    <div className="rounded-[2rem] overflow-hidden bg-slate-100 shadow-inner aspect-video relative max-h-[60vh] mx-auto w-full border-2 border-slate-200 mb-8">
-                        {stepData.media_url ? (
-                            stepData.media_type === 'video' ? (
-                                <video key={stepData.media_url} controls className="w-full h-full object-contain">
-                                    <source src={stepData.media_url} type="video/mp4" />
-                                </video>
-                            ) : (
-                                <img src={stepData.media_url} alt="Materi" className="w-full h-full object-contain"/>
-                            )
-                        ) : (
-                            <div className="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-50">
-                                <FileText size={48} className="opacity-50"/>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Description */}
-                    <div className="prose prose-lg max-w-none text-slate-600 leading-relaxed">
-                        <p>{stepData.description}</p>
-                    </div>
-                </Card>
+                    <p className="text-lg text-slate-600 leading-relaxed font-medium">
+                        {stepData.description}
+                    </p>
+                </div>
             </div>
         </div>
     );

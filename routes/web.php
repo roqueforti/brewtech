@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ModuleController; 
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudentAuthController;
 use Illuminate\Support\Facades\Auth;
@@ -10,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
+| Web Routes (FINAL FIXED)
 |--------------------------------------------------------------------------
 */
 
@@ -54,31 +53,27 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // 3. AREA PESERTA (Student)
 // =========================================================================
 
-// A. Rute Utama Peserta (Dashboard, Profil, dll)
 Route::middleware(['auth', 'verified'])->prefix('peserta')->name('peserta.')->group(function () {
+    // Menggunakan DashboardController
     Route::get('/dashboard', [DashboardController::class, 'indexPeserta'])->name('dashboard');
-    Route::get('/profil', [DashboardController::class, 'profil'])->name('profil');
-    Route::get('/nilai-spk', [DashboardController::class, 'nilaiSpk'])->name('nilai.spk');
-    Route::get('/alur-belajar', [DashboardController::class, 'workshopFlow'])->name('alur.belajar');
 });
 
-// B. Rute Play Workshop (DIPISAH AGAR NAMA ROUTE SESUAI FRONTEND)
-// Kita taruh di luar grup 'name(peserta.)' agar namanya murni 'workshop.play'
+// ✅ FIX: RUTE PLAY (WAJIB DashboardController)
+// Diletakkan di luar prefix 'name(peserta.)' agar namanya tetap 'workshop.play' sesuai Frontend
 Route::middleware(['auth', 'verified'])->prefix('peserta')->group(function () {
-    // URL: /peserta/workshop/{id}/play
-    // Nama Route: workshop.play (Tanpa awalan peserta.)
-    Route::get('/workshop/{id}/play', [ModuleController::class, 'play'])->name('workshop.play'); 
+    Route::get('/workshop/{id}/play', [DashboardController::class, 'play'])->name('workshop.play'); 
 });
 
 
 // =========================================================================
-// 4. API ENDPOINTS (Internal API untuk Frontend Peserta)
+// 4. API ENDPOINTS (Untuk Frontend Play.tsx)
 // =========================================================================
+// ✅ FIX: Semua diarahkan ke DashboardController (karena logika submitQuiz dll ada disana)
 Route::middleware(['auth', 'verified'])->prefix('api/workshop/{id}')->group(function () {
-    Route::get('/steps', [ModuleController::class, 'getSteps']);
-    Route::get('/quiz/{type}', [ModuleController::class, 'getQuiz']);
-    Route::post('/quiz/submit', [ModuleController::class, 'submitQuiz'])->name('api.quiz.submit');
-    Route::post('/photo', [ModuleController::class, 'submitPhoto']);
+    Route::get('/steps', [DashboardController::class, 'getSteps']);
+    Route::get('/quiz/{type}', [DashboardController::class, 'getQuiz']);
+    Route::post('/quiz/submit', [DashboardController::class, 'submitQuiz'])->name('api.quiz.submit');
+    Route::post('/photo', [DashboardController::class, 'submitPhoto']);
 });
 
 
@@ -120,9 +115,13 @@ Route::middleware(['auth', 'verified'])->prefix('pengajar')->name('pengajar.')->
     Route::get('/analisis', [DashboardController::class, 'analisis'])->name('analisis');
 
     // --- E. BANK MODUL ---
-    Route::put('/modul/global-soft-skills', [ModuleController::class, 'updateGlobalSoftSkills'])->name('modul.global-soft-skills');
-    Route::resource('modul', ModuleController::class)->except(['create', 'show']);
-    Route::get('/modul/{id}/preview', [ModuleController::class, 'preview'])->name('modul.preview');
+    // Menggunakan DashboardController untuk CRUD Modul
+    Route::get('/modul', [DashboardController::class, 'modulIndex'])->name('modul.index');
+    Route::post('/modul', [DashboardController::class, 'storeModul'])->name('modul.store');
+    Route::get('/modul/{id}/edit', [DashboardController::class, 'editModul'])->name('modul.edit');
+    Route::put('/modul/{id}', [DashboardController::class, 'updateModul'])->name('modul.update');
+    Route::delete('/modul/{id}', [DashboardController::class, 'destroyModul'])->name('modul.destroy');
+    Route::get('/modul/{id}/preview', [DashboardController::class, 'previewModul'])->name('modul.preview');
 
     // --- F. PENGATURAN ---
     Route::get('/pengaturan', [SettingController::class, 'index'])->name('pengaturan');
