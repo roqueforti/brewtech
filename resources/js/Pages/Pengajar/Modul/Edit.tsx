@@ -276,19 +276,26 @@ export default function Edit({ auth, module }: Props) {
         }))
     });
 
-    // --- LOGIKA SINKRONISASI POST-TEST (REAL-TIME MIRRORING) ---
+    // --- LOGIKA SINKRONISASI POST-TEST ---
     useEffect(() => {
         if (syncPostTest) {
-            // Ketika tombol sync aktif, setiap perubahan di pre-test langsung dicopy ke post-test
             const mirroredQuestions = data.pre_test_questions.map(q => ({
                 ...q, 
-                type: 'post_test', // Set type jadi post_test
+                type: 'post_test', 
                 media_file: q.media_file, 
                 options: q.options.map(opt => ({ ...opt, media_file: opt.media_file }))
             }));
             setData('post_test_questions', mirroredQuestions as any);
         }
-    }, [data.pre_test_questions, syncPostTest]); // Trigger saat pre-test berubah atau toggle aktif
+    }, [data.pre_test_questions, syncPostTest]);
+
+    // --- HELPER UNTUK MENGHITUNG JUMLAH ITEM (UNTUK BADGE NOTIFIKASI) ---
+    const getCount = (tabId: string) => {
+        if (tabId === 'pre-test') return data.pre_test_questions.length;
+        if (tabId === 'post-test') return data.post_test_questions.length;
+        if (tabId === 'materi') return data.steps.length;
+        return 0;
+    };
 
     const updateItem = (key: 'tools' | 'steps' | 'pre_test_questions' | 'post_test_questions', index: number, field: string | object, value?: any) => {
         const updatedList = [...(data[key] || [])];
@@ -310,7 +317,9 @@ export default function Edit({ auth, module }: Props) {
     };
 
     const handleImport = (rawText: string) => {
+        // Pisahkan per baris, buang baris kosong
         const lines = rawText.split('\n').map(l => l.trim()).filter(l => l);
+        
         if (importType === 'tools') {
             const newTools = lines.filter(l => !l.endsWith(':') && !['alat', 'bahan', 'alat:', 'bahan:'].includes(l.toLowerCase())).map(l => ({ name: l.replace(/^[\d\-\.\•]+\s*/, ''), media_url: null }));
             setData('tools', [...data.tools, ...newTools]);
@@ -320,16 +329,50 @@ export default function Edit({ auth, module }: Props) {
             setData('steps', [...data.steps, ...newSteps]);
             toast.success(`Berhasil mengimpor ${newSteps.length} langkah!`);
         } else {
-            const newQuestions: any[] = []; let currentQ: any = null;
+            // --- LOGIKA IMPORT SOAL YANG DIPERBAIKI ---
+            const newQuestions: any[] = [];
+            let currentQ: any = null;
+
             lines.forEach(l => {
-                if(l.match(/^[A-D]\./)) { 
-                    if(currentQ) { const idx = l.charCodeAt(0) - 65; if(idx < 4) currentQ.options[idx].text = l.substring(2).trim(); } 
+                // Regex: Cek apakah baris dimulai dengan A., B., C., atau D.
+                const optionMatch = l.match(/^([A-D])\.\s*(.*)/i);
+
+                if (optionMatch) {
+                    // Jika ini adalah opsi jawaban (A-D)
+                    if (currentQ) {
+                        const charCode = optionMatch[1].toUpperCase().charCodeAt(0); // Ambil huruf A/B/C/D
+                        const idx = charCode - 65; // Konversi ke index 0-3 (A=0, B=1, dst)
+                        
+                        if (idx >= 0 && idx < 4) {
+                            // Masukkan teks ke opsi yang sesuai index-nya
+                            // PENTING: Gunakan spread operator (...) agar array opsi ter-update dengan benar
+                            const updatedOptions = [...currentQ.options];
+                            updatedOptions[idx] = { text: optionMatch[2].trim(), media_url: null };
+                            currentQ.options = updatedOptions;
+                        }
+                    }
                 } else {
-                    if(currentQ) newQuestions.push(currentQ);
-                    currentQ = { question: l, options: Array(4).fill({text:''}), correct_option:0, type: activeTab==='pre-test'?'pre_test':'post_test' };
+                    // Jika bukan opsi, berarti ini Pertanyaan baru
+                    // Simpan pertanyaan sebelumnya jika ada
+                    if (currentQ) {
+                        newQuestions.push(currentQ);
+                    }
+                    
+                    // Buat objek pertanyaan baru
+                    currentQ = { 
+                        question: l.replace(/^\d+[\.\)]\s*/, ''), // Hapus nomor soal jika ada (misal "1. Apa...")
+                        options: Array(4).fill({ text: '', media_url: null }), // Reset opsi kosong
+                        correct_option: 0, 
+                        type: activeTab === 'pre-test' ? 'pre_test' : 'post_test' 
+                    };
                 }
             });
-            if(currentQ) newQuestions.push(currentQ);
+
+            // Jangan lupa push pertanyaan terakhir setelah loop selesai
+            if (currentQ) {
+                newQuestions.push(currentQ);
+            }
+
             const targetKey = activeTab === 'pre-test' ? 'pre_test_questions' : 'post_test_questions';
             setData(targetKey as any, [...(data as any)[targetKey], ...newQuestions]);
             toast.success(`Berhasil mengimpor ${newQuestions.length} soal!`);
@@ -388,14 +431,26 @@ export default function Edit({ auth, module }: Props) {
             <div className="flex-1 flex flex-col min-h-screen w-full">
                 <header className="sticky top-0 z-40 bg-[#FAFAF9]/95 backdrop-blur border-b border-slate-200/50"><HeaderPengajar /></header>
                 <div className="flex-1 flex overflow-hidden">
+                    
+                    {/* --- SIDEBAR NAVIGASI MENU --- */}
                     <nav className="w-64 bg-white border-r border-slate-200 hidden lg:flex flex-col h-full p-4 space-y-2">
                         <Link href="/pengajar/modul" className="text-slate-400 hover:text-cyan-600 text-xs font-bold mb-4 flex items-center gap-1"><ArrowLeft size={14}/> KEMBALI</Link>
+                        
                         {[{id:'info',icon:FileText,label:'Info'},{id:'pre-test',icon:HelpCircle,label:'Pre-Test'},{id:'materi',icon:Layers,label:'Praktikum'},{id:'post-test',icon:List,label:'Post-Test'}].map(item => (
-                            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-bold text-sm ${activeTab===item.id ? 'bg-cyan-50 text-cyan-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-                                <item.icon size={18}/> {item.label}
+                            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full text-left px-4 py-3 rounded-xl flex items-center justify-between gap-3 font-bold text-sm ${activeTab===item.id ? 'bg-cyan-50 text-cyan-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                <div className="flex items-center gap-3">
+                                    <item.icon size={18}/> {item.label}
+                                </div>
+                                {/* BADGE JUMLAH ITEM (New Feature) */}
+                                {item.id !== 'info' && (
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${activeTab === item.id ? 'bg-cyan-200 text-cyan-800' : 'bg-slate-100 text-slate-500'}`}>
+                                        {getCount(item.id)}
+                                    </span>
+                                )}
                             </button>
                         ))}
                     </nav>
+
                     <main className="flex-1 overflow-y-auto p-8 bg-[#FAFAF9] pb-32">
                         <div className="flex justify-between items-center mb-8">
                             <h1 className="text-3xl font-black text-slate-800 capitalize">{activeTab.replace('-', ' ')}</h1>
@@ -416,7 +471,7 @@ export default function Edit({ auth, module }: Props) {
                                 {!(activeTab === 'post-test' && syncPostTest) && <Button variant="outline" size="sm" onClick={() => {setImportType('question'); setShowImportModal(true)}} className="bg-white border-2 font-bold"><UploadCloud size={16} className="mr-2"/> Import Soal</Button>}
                             </div>
                             
-                            {/* SWITCH BUTTON SINKRONISASI - ✅ FIXED: Menggunakan Checkbox Standar */}
+                            {/* SWITCH BUTTON SINKRONISASI */}
                             {activeTab === 'post-test' && (
                                 <div className="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm">
                                     <span className="font-bold text-slate-600 flex items-center gap-2">

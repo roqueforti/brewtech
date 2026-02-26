@@ -5,8 +5,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ... (kode css theme warna HSL anda sebelumnya biarkan saja) ... */
-
 @layer utilities {
   /* Pattern Titik-Titik ala Poster */
   .bg-dots {
@@ -20,6 +18,16 @@
   }
   .font-body {
     font-family: 'Quicksand', sans-serif;
+  }
+
+  /* --- RESPONSIVE UTILITIES UNTUK TV / LARGE SCREENS --- */
+  /* Agar teks tidak terlalu kecil di TV 4K */
+  @media (min-width: 2000px) {
+    .text-tv-base { font-size: 1.5rem; line-height: 2rem; }
+    .text-tv-lg { font-size: 1.875rem; line-height: 2.25rem; }
+    .text-tv-xl { font-size: 2.5rem; line-height: 2.75rem; }
+    .text-tv-4xl { font-size: 4rem; line-height: 1; }
+    .p-tv { padding: 4rem; } /* Padding lebih lega */
   }
 }
 
@@ -38,17 +46,14 @@
     --popover-foreground: 200 60% 15%;
 
     /* 3. PRIMARY: CYAN #5BCCEA (Warna Utama Brand) */
-    /* Digunakan untuk Tombol Utama, Header, Icon Besar */
     --primary: 193 76% 64%;
     --primary-foreground: 0 0% 100%; /* Teks Putih */
 
     /* 4. SECONDARY: PINK #FF01A2 (AKSEN KUAT) */
-    /* Gunakan class 'bg-secondary' untuk Label, Badge, atau Tombol Call-to-Action 2 */
     --secondary: 322 100% 50%;
     --secondary-foreground: 0 0% 100%; /* Teks Putih */
 
-    /* 5. ACCENT: Cyan Muda (Untuk Hover & Background Halus) */
-    /* Agar nuansa website tetap BIRU, accent jangan Pink */
+    /* 5. ACCENT: Cyan Muda */
     --accent: 193 50% 90%; 
     --accent-foreground: 200 60% 15%;
 
@@ -61,13 +66,13 @@
 
     --border: 193 50% 85%;
     --input: 193 50% 85%;
-    --ring: 322 100% 50%; /* Ring fokus warna Pink agar seru! */
+    --ring: 322 100% 50%; /* Ring Pink */
 
     --radius: 1.5rem;
 
     /* Chart Colors */
-    --chart-1: 322 100% 50%; /* Pink */
-    --chart-2: 193 76% 64%; /* Cyan */
+    --chart-1: 322 100% 50%;
+    --chart-2: 193 76% 64%;
     --chart-3: 200 60% 45%;
     --chart-4: 45 90% 60%;
     --chart-5: 160 60% 45%;
@@ -92,7 +97,7 @@
     --popover-foreground: 193 40% 95%;
     --primary: 193 76% 64%;
     --primary-foreground: 200 50% 10%;
-    --secondary: 322 100% 50%; /* Pink menyala di gelap */
+    --secondary: 322 100% 50%;
     --secondary-foreground: 0 0% 100%;
     --accent: 200 40% 20%;
     --accent-foreground: 193 40% 95%;
@@ -112,20 +117,44 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Agar nyaman dilihat di TV */
+    font-size: 16px; /* Base size */
+  }
+
+  /* Penyesuaian Global untuk Layar Besar (TV 40"+) */
+  @media (min-width: 1920px) {
+    html {
+      font-size: 18px; /* Meningkatkan skala font dasar */
+    }
+    .container {
+      max-width: 1600px !important; /* Lebarkan container agar tidak terlalu kosong di kanan-kiri */
+    }
+  }
+  
+  /* Untuk Layar 4K TV */
+  @media (min-width: 2560px) {
+    html {
+      font-size: 24px; /* Font lebih besar lagi */
+    }
+    .container {
+      max-width: 2200px !important;
+    }
   }
 }
 
-/* Custom Scrollbar - Pink Handle */
+/* Custom Scrollbar - Pink Handle (Diperbesar untuk TV agar mudah dilihat) */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+  width: 12px; /* Lebih lebar dari 8px */
 }
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--secondary) / 0.5); /* Pink Pudar */
+  background-color: hsl(var(--secondary) / 0.5);
   border-radius: 9999px;
+  border: 2px solid transparent; /* Memberi jarak agar terlihat mengambang */
+  background-clip: content-box;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--secondary)); /* Pink Terang saat di-hover */
+  background-color: hsl(var(--secondary));
 }

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ModuleController; // ✅ PENTING: Import ModuleController
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudentAuthController;
 use Illuminate\Support\Facades\Auth;
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes (FINAL FIXED)
+| Web Routes (FINAL FIXED & OPTIMIZED)
 |--------------------------------------------------------------------------
 */
 
@@ -54,26 +55,28 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // =========================================================================
 
 Route::middleware(['auth', 'verified'])->prefix('peserta')->name('peserta.')->group(function () {
-    // Menggunakan DashboardController
+    // Dashboard Peserta
     Route::get('/dashboard', [DashboardController::class, 'indexPeserta'])->name('dashboard');
+
+    // ✅ FITUR BARU: DETAIL HASIL EVALUASI
+    Route::get('/modul/{moduleId}/result/{type}', [ModuleController::class, 'showResult'])->name('modul.result');
 });
 
-// ✅ FIX: RUTE PLAY (WAJIB DashboardController)
-// Diletakkan di luar prefix 'name(peserta.)' agar namanya tetap 'workshop.play' sesuai Frontend
+// ✅ RUTE PLAY WORKSHOP (Menggunakan ModuleController)
 Route::middleware(['auth', 'verified'])->prefix('peserta')->group(function () {
-    Route::get('/workshop/{id}/play', [DashboardController::class, 'play'])->name('workshop.play'); 
+    Route::get('/workshop/{id}/play', [ModuleController::class, 'play'])->name('workshop.play'); 
 });
 
 
 // =========================================================================
 // 4. API ENDPOINTS (Untuk Frontend Play.tsx)
 // =========================================================================
-// ✅ FIX: Semua diarahkan ke DashboardController (karena logika submitQuiz dll ada disana)
+// ✅ Menggunakan ModuleController karena logikanya sudah dipindah kesana
 Route::middleware(['auth', 'verified'])->prefix('api/workshop/{id}')->group(function () {
-    Route::get('/steps', [DashboardController::class, 'getSteps']);
-    Route::get('/quiz/{type}', [DashboardController::class, 'getQuiz']);
-    Route::post('/quiz/submit', [DashboardController::class, 'submitQuiz'])->name('api.quiz.submit');
-    Route::post('/photo', [DashboardController::class, 'submitPhoto']);
+    Route::get('/steps', [ModuleController::class, 'getSteps']);
+    Route::get('/quiz/{type}', [ModuleController::class, 'getQuiz']);
+    Route::post('/quiz/submit', [ModuleController::class, 'submitQuiz'])->name('api.quiz.submit');
+    Route::post('/photo', [ModuleController::class, 'submitPhoto']);
 });
 
 
@@ -97,6 +100,8 @@ Route::middleware(['auth', 'verified'])->prefix('pengajar')->name('pengajar.')->
     Route::post('/kelas/{id}/modules', [DashboardController::class, 'addModuleToKelas'])->name('kelas.add-module'); 
     Route::delete('/kelas/{id}/modules/{moduleId}', [DashboardController::class, 'removeModuleFromKelas'])->name('kelas.remove-module'); 
     Route::put('/kelas/{kelasId}/modules/{moduleId}/schedule', [DashboardController::class, 'updateModuleSchedule'])->name('kelas.module.schedule');
+    Route::get('/kelas/{kelasId}/modul/{moduleId}/siswa/{studentId}/result/{type}', [ModuleController::class, 'showStudentResult'])
+    ->name('pengajar.siswa.result');
     
     Route::post('/kelas/{id}/students', [DashboardController::class, 'addStudentToKelas'])->name('kelas.add-student');
     Route::delete('/kelas/{id}/students/{studentId}', [DashboardController::class, 'removeStudentFromKelas'])->name('kelas.remove-student');
@@ -114,14 +119,16 @@ Route::middleware(['auth', 'verified'])->prefix('pengajar')->name('pengajar.')->
     // --- D. ANALISIS SPK ---
     Route::get('/analisis', [DashboardController::class, 'analisis'])->name('analisis');
 
-    // --- E. BANK MODUL ---
-    // Menggunakan DashboardController untuk CRUD Modul
-    Route::get('/modul', [DashboardController::class, 'modulIndex'])->name('modul.index');
-    Route::post('/modul', [DashboardController::class, 'storeModul'])->name('modul.store');
-    Route::get('/modul/{id}/edit', [DashboardController::class, 'editModul'])->name('modul.edit');
-    Route::put('/modul/{id}', [DashboardController::class, 'updateModul'])->name('modul.update');
-    Route::delete('/modul/{id}', [DashboardController::class, 'destroyModul'])->name('modul.destroy');
-    Route::get('/modul/{id}/preview', [DashboardController::class, 'previewModul'])->name('modul.preview');
+    // --- E. BANK MODUL (✅ Menggunakan ModuleController) ---
+    Route::get('/modul', [ModuleController::class, 'index'])->name('modul.index');
+    Route::post('/modul', [ModuleController::class, 'store'])->name('modul.store');
+    Route::get('/modul/{id}/edit', [ModuleController::class, 'edit'])->name('modul.edit');
+    Route::put('/modul/{id}', [ModuleController::class, 'update'])->name('modul.update');
+    Route::delete('/modul/{id}', [ModuleController::class, 'destroy'])->name('modul.destroy');
+    Route::get('/modul/{id}/preview', [ModuleController::class, 'preview'])->name('modul.preview');
+    
+    // Global Soft Skills Setting
+    Route::post('/modul/soft-skills', [ModuleController::class, 'updateGlobalSoftSkills'])->name('modul.softskills.update');
 
     // --- F. PENGATURAN ---
     Route::get('/pengaturan', [SettingController::class, 'index'])->name('pengaturan');

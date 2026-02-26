@@ -56,6 +56,8 @@ class DashboardController extends Controller
 
         $formattedModules = $classModules->map(function ($mod) use ($studentProgress) {
             $progress = $studentProgress->where('module_id', $mod->id)->first();
+            
+            // Logic status existing
             $isCompleted = $progress && $progress->status === 'completed';
             $pivot = $mod->pivot;
             
@@ -79,24 +81,34 @@ class DashboardController extends Controller
             return [
                 'id' => $mod->id,
                 'title' => $mod->title,
+                'description' => $mod->description, // Added description matching frontend interface
+                'category' => $mod->category ?? 'General', // Added category
+                'duration' => $mod->duration ?? '0', // Added duration
                 'subtitle' => $mod->description ?? 'Pelajari materi ini untuk lanjut.',
                 'emoji' => $mod->emoji ?? '☕',
                 'status' => $status,
                 'theme' => $mod->category == 'Hard Skill' ? 'orange' : 'blue',
                 'date' => $date,
-                'opens_at' => $pivot->opens_at ? Carbon::parse($pivot->opens_at)->translatedFormat('d M Y, H:i') . ' WIB' : 'Sekarang'
+                'opens_at' => $pivot->opens_at ? Carbon::parse($pivot->opens_at)->translatedFormat('d M Y, H:i') . ' WIB' : 'Sekarang',
+                // ADD THIS FOR FRONTEND INDICATORS
+                'progress' => $progress ? [
+                    'status' => $progress->status,
+                    'pretest_score' => $progress->pretest_score,
+                    'posttest_score' => $progress->posttest_score
+                ] : null
             ];
         });
 
-        $stats = [
-            'completed' => $formattedModules->where('status', 'completed')->count(),
-            'active'    => $formattedModules->where('status', 'available')->count(),
-        ];
+        // Calculate total progress for the header bar
+        $totalModules = $formattedModules->count();
+        $completedCount = $formattedModules->where('status', 'completed')->count();
+        $totalProgress = $totalModules > 0 ? ($completedCount / $totalModules) * 100 : 0;
 
         return Inertia::render('Peserta/Dashboard', [
             'auth' => ['user' => $user],
-            'workshops' => $formattedModules,
-            'stats' => $stats
+            'modules' => $formattedModules, // Changed key from 'workshops' to 'modules' to match Frontend Interface
+            'total_progress' => $totalProgress, // Added
+            'completed_modules' => $completedCount // Added
         ]);
     }
 
@@ -629,37 +641,95 @@ class DashboardController extends Controller
         $bobotSoft = (int) (Setting::where('key', 'spk_bobot_soft')->value('value') ?? 40) / 100;
         $limitSiap = (int) (Setting::where('key', 'spk_threshold_siap')->value('value') ?? 85);
         $limitPantau = (int) (Setting::where('key', 'spk_threshold_pantau')->value('value') ?? 75);
-        $students = User::where('role', 'student')->with(['kelas', 'progress.module'])->get()->map(function ($s) use ($bobotVisual, $bobotSoft, $limitSiap, $limitPantau) {
-            $completedModules = $s->progress; 
-            $totalVisual = 0; $totalSoft = 0; $count = $completedModules->count();
-            $moduleDetails = [];
-            foreach ($completedModules as $prog) {
-                $visualScore = $prog->posttest_score ?? 0;
-                $softSkillScore = $prog->soft_skill_score ?? 0;
-                $finalScore = ($visualScore * $bobotVisual) + ($softSkillScore * $bobotSoft);
-                $totalVisual += $visualScore; $totalSoft += $softSkillScore;
-                $moduleDetails[] = ['module_name' => $prog->module->title ?? 'Modul', 'visual' => $visualScore, 'softskill' => $softSkillScore, 'total' => round($finalScore, 1), 'status' => $finalScore >= 80 ? 'Kompeten' : 'Cukup'];
-            }
-            $avgVisual = $count > 0 ? round($totalVisual / $count) : 0;
-            $avgSoft = $count > 0 ? round($totalSoft / $count) : 0;
-            $avgTotal = ($avgVisual * $bobotVisual) + ($avgSoft * $bobotSoft);
-            if ($count === 0) { $status = 'Belum Ada Data'; $badgeColor = 'gray'; $rek = 'Belum ada data nilai yang masuk.'; } 
-            elseif ($avgTotal >= $limitSiap) { $status = 'Siap PKL'; $badgeColor = 'green'; $rek = 'Sangat direkomendasikan untuk magang.'; } 
-            elseif ($avgTotal >= $limitPantau) { $status = 'Butuh Pendampingan'; $badgeColor = 'purple'; $rek = 'Perlu pengawasan supervisor saat PKL.'; } 
-            else { $status = 'Perlu Pelatihan Ulang'; $badgeColor = 'orange'; $rek = 'Belum memenuhi standar minimal industri.'; }
-            return ['id' => $s->id, 'nama' => $s->name, 'kelas' => $s->kelas->nama ?? 'Tanpa Kelas', 'module_count' => $count, 'avg_visual' => $avgVisual, 'avg_softskill' => $avgSoft, 'global_score' => round($avgTotal, 1), 'status' => $status, 'rekomendasi' => $rek, 'badge_color' => $badgeColor, 'details' => $moduleDetails];
-        });
+
+        $students = User::where('role', 'student')
+            ->with(['kelas', 'progress.module']) // Eager load relationships
+            ->get()
+            ->map(function ($s) use ($bobotVisual, $bobotSoft, $limitSiap, $limitPantau) {
+                $completedModules = $s->progress; 
+                $totalVisual = 0; 
+                $totalSoft = 0; 
+                $count = $completedModules->count();
+                $moduleDetails = [];
+
+                foreach ($completedModules as $prog) {
+                    $visualScore = $prog->posttest_score ?? 0;
+                    $preTestScore = $prog->pretest_score ?? 0; // Get Pre-test score
+                    $softSkillScore = $prog->soft_skill_score ?? 0;
+                    
+                    $finalScore = ($visualScore * $bobotVisual) + ($softSkillScore * $bobotSoft);
+                    
+                    $totalVisual += $visualScore; 
+                    $totalSoft += $softSkillScore;
+
+                    $moduleDetails[] = [
+                        'module_name' => $prog->module->title ?? 'Modul',
+                        'pre_test_score' => $preTestScore, // Added for individual progress chart
+                        'visual' => $visualScore, // Post-test score
+                        'softskill' => $softSkillScore,
+                        'total' => round($finalScore, 1),
+                        'status' => $finalScore >= 80 ? 'Kompeten' : 'Cukup'
+                    ];
+                }
+
+                $avgVisual = $count > 0 ? round($totalVisual / $count) : 0;
+                $avgSoft = $count > 0 ? round($totalSoft / $count) : 0;
+                $avgTotal = ($avgVisual * $bobotVisual) + ($avgSoft * $bobotSoft);
+
+                // Determine Status
+                if ($count === 0) { 
+                    $status = 'Belum Ada Data'; $badgeColor = 'gray'; $rek = 'Belum ada data nilai yang masuk.'; 
+                } elseif ($avgTotal >= $limitSiap) { 
+                    $status = 'Siap PKL'; $badgeColor = 'green'; $rek = 'Sangat direkomendasikan untuk magang.'; 
+                } elseif ($avgTotal >= $limitPantau) { 
+                    $status = 'Butuh Pendampingan'; $badgeColor = 'purple'; $rek = 'Perlu pengawasan supervisor saat PKL.'; 
+                } else { 
+                    $status = 'Perlu Pelatihan Ulang'; $badgeColor = 'orange'; $rek = 'Belum memenuhi standar minimal industri.'; 
+                }
+
+                return [
+                    'id' => $s->id,
+                    'nama' => $s->name,
+                    'kelas' => $s->kelas->nama ?? 'Tanpa Kelas',
+                    'module_count' => $count,
+                    'avg_visual' => $avgVisual,
+                    'avg_softskill' => $avgSoft,
+                    'global_score' => round($avgTotal, 1),
+                    'status' => $status,
+                    'rekomendasi' => $rek,
+                    'badge_color' => $badgeColor,
+                    'details' => $moduleDetails // Contains pre_test_score now
+                ];
+            });
+
+        // Class Stats Logic (remains mostly same, just ensuring robustness)
         $classStats = $students->groupBy('kelas')->map(function ($group, $className) {
             if ($className === 'Tanpa Kelas') return null;
+            
             $totalSiswa = $group->count();
             $avgGlobal = round($group->avg('global_score'), 1);
             $avgVisual = round($group->avg('avg_visual'), 1);
             $avgSoft = round($group->avg('avg_softskill'), 1);
+            
             $lulusCount = $group->filter(fn($s) => $s['status'] === 'Siap PKL')->count();
             $passRate = $totalSiswa > 0 ? round(($lulusCount / $totalSiswa) * 100) : 0;
-            return ['nama_kelas' => $className, 'total_siswa' => $totalSiswa, 'avg_score' => $avgGlobal, 'avg_visual' => $avgVisual, 'avg_soft' => $avgSoft, 'pass_rate' => $passRate, 'best_student' => $group->sortByDesc('global_score')->first()['nama'] ?? '-'];
+            
+            return [
+                'nama_kelas' => $className,
+                'total_siswa' => $totalSiswa,
+                'avg_score' => $avgGlobal,
+                'avg_visual' => $avgVisual,
+                'avg_soft' => $avgSoft,
+                'pass_rate' => $passRate,
+                'best_student' => $group->sortByDesc('global_score')->first()['nama'] ?? '-'
+            ];
         })->filter()->values();
-        return Inertia::render('Pengajar/AnalisisSPK', ['auth' => ['user' => $user], 'students' => $students, 'classStats' => $classStats]);
+
+        return Inertia::render('Pengajar/AnalisisSPK', [
+            'auth' => ['user' => $user],
+            'students' => $students,
+            'classStats' => $classStats
+        ]);
     }
 
     public function getSteps($id) { return response()->json(ModuleStep::where('module_id', $id)->get()); }
@@ -668,15 +738,38 @@ class DashboardController extends Controller
     public function submitQuiz(Request $request, $id)
     {
         $request->validate(['type' => 'required|in:pre_test,post_test', 'answers' => 'required|array']);
+        
+        // 1. Hitung Skor
         $questions = ModuleQuestion::where('module_id', $id)->where('type', $request->type)->get();
         $totalQuestions = $questions->count();
         $correctCount = 0;
-        foreach ($questions as $q) { if (isset($request->answers[$q->id]) && (int)$request->answers[$q->id] === (int)$q->correct_answer) { $correctCount++; } }
+        
+        foreach ($questions as $q) { 
+            if (isset($request->answers[$q->id]) && (int)$request->answers[$q->id] === (int)$q->correct_answer) { 
+                $correctCount++; 
+            } 
+        }
+        
         $finalScore = $totalQuestions > 0 ? round(($correctCount / $totalQuestions) * 100) : 0;
+        
+        // 2. Simpan Progress
         $progress = StudentModuleProgress::firstOrCreate(['user_id' => Auth::id(), 'module_id' => $id], ['status' => 'in_progress']);
-        if ($request->type === 'pre_test') { $progress->pretest_score = $finalScore; } 
-        else { $progress->posttest_score = $finalScore; if ($finalScore >= 70) $progress->status = 'completed'; }
-        $progress->save();
+        
+        // 3. Simpan History (Pastikan Model StudentModuleProgress sudah ada $casts 'history' => 'array')
+        $history = $progress->history ?? [];
+        $history[$request->type] = $request->answers;
+        $progress->history = $history; // Ini akan otomatis di-JSON-kan oleh Laravel
+
+        if ($request->type === 'pre_test') { 
+            $progress->pretest_score = $finalScore; 
+        } else { 
+            $progress->posttest_score = $finalScore; 
+            if ($finalScore >= 70) $progress->status = 'completed'; 
+        }
+        
+        $progress->save(); // Jika Model benar, di sini tidak akan Error 500 lagi
+        
+        // 4. Kirim Balikan Sukses ke Frontend
         return redirect()->back()->with('success', 'Jawaban terkirim! Nilai Anda: ' . $finalScore);
     }
 

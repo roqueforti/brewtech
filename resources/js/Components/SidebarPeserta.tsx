@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { 
     LayoutDashboard, 
     User, 
@@ -8,15 +8,21 @@ import {
     Coffee 
 } from 'lucide-react';
 
-// Definisi helper route agar tidak merah di TypeScript
-declare function route(name: string): string;
-
 export default function SidebarPeserta() {
-    // Menggunakan usePage untuk mengecek URL aktif agar menu bisa highlight otomatis
     const { url } = usePage();
-
-    // Helper untuk cek link aktif
     const isActive = (path: string) => url.startsWith(path);
+
+    // ✅ FIX: Menggunakan Hardcoded URL '/logout'
+    // Ini lebih aman jika helper route() bermasalah/error
+    const handleLogout = (e: React.MouseEvent) => {
+        e.preventDefault(); // Mencegah behavior default
+        console.log("Tombol logout diklik, memproses..."); // Cek console browser (F12) jika masih gagal
+        
+        router.post('/logout', {}, {
+            onStart: () => console.log("Request logout dimulai..."),
+            onFinish: () => console.log("Request selesai."),
+        });
+    };
 
     return (
         <aside className="w-64 bg-white h-full border-r border-slate-200 flex flex-col fixed left-0 top-0 z-50 shadow-sm">
@@ -36,7 +42,7 @@ export default function SidebarPeserta() {
             {/* 2. MENU NAVIGATION */}
             <nav className="flex-1 px-6 space-y-2 mt-6">
                 <Link 
-                    href={route('peserta.dashboard')} 
+                    href="/peserta/dashboard" 
                     className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200
                         ${isActive('/peserta/dashboard') 
                             ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200 translate-x-1' 
@@ -48,57 +54,27 @@ export default function SidebarPeserta() {
                     <span>Dashboard</span>
                 </Link>
 
-                <Link 
-                    href="#" 
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200
-                        ${isActive('/peserta/profil') 
-                            ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200 translate-x-1' 
-                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-                        }
-                    `}
-                >
-                    <User size={20} /> 
-                    <span>Profil Saya</span>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all">
+                    <User size={20} /> <span>Profil Saya</span>
                 </Link>
-
-                <Link 
-                    href="#" 
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200
-                        ${isActive('/peserta/nilai') 
-                            ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200 translate-x-1' 
-                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-                        }
-                    `}
-                >
-                    <Award size={20} /> 
-                    <span>Nilai & SPK</span>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all">
+                    <Award size={20} /> <span>Nilai & SPK</span>
                 </Link>
-
-                <Link 
-                    href="#" 
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200
-                        ${isActive('/peserta/alur') 
-                            ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-200 translate-x-1' 
-                            : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-                        }
-                    `}
-                >
-                    <Map size={20} /> 
-                    <span>Alur Belajar</span>
+                <Link href="#" className="flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-all">
+                    <Map size={20} /> <span>Alur Belajar</span>
                 </Link>
             </nav>
 
             {/* 3. LOGOUT BUTTON (FIXED) */}
             <div className="p-6 border-t border-slate-100">
-                <Link 
-                    href={route('logout')} 
-                    method="post" // ✅ PENTING: Harus POST agar Laravel memproses logout
-                    as="button"   // ✅ Render sebagai button agar form behavior jalan
-                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-red-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200 group"
+                <button 
+                    type="button" // Pastikan type button agar tidak dianggap submit form sembarangan
+                    onClick={handleLogout} 
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-red-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200 group text-left focus:outline-none focus:ring-2 focus:ring-red-200"
                 >
                     <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" /> 
                     <span>Keluar Sesi</span>
-                </Link>
+                </button>
             </div>
         </aside>
     );

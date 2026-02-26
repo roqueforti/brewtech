@@ -11,22 +11,18 @@ class StudentModuleProgress extends Model
 
     protected $table = 'student_module_progress'; 
 
-    protected $fillable = [
-        'user_id',
-        'module_id',
-        'status',
-        'pretest_score',
-        'posttest_score',
-        'photo_url',
-        'praktikum_completed',
-        'soft_skill_score',   // Nilai Rata-rata
-        'soft_skill_details', // ✅ Detail Nilai per Kriteria (JSON)
-        'soft_skill_notes'    // Catatan
-    ];
+    // ✅ PENTING: Gunakan $guarded = ['id'] daripada $fillable.
+    // Ini mengizinkan semua kolom (seperti 'history', 'trainer_notes', dll) untuk diisi,
+    // kecuali kolom 'id'. Ini mencegah error "Mass Assignment" jika ada kolom baru.
+    protected $guarded = ['id'];
 
-    // ✅ FITUR BARU: Casting otomatis JSON ke Array
+    // ✅ CASTING OTOMATIS
     protected $casts = [
-        'soft_skill_details' => 'array',
+        'history' => 'array',              // ⚠️ WAJIB: Agar History Quiz terbaca sebagai JSON Object di React
+        'trainer_soft_details' => 'array', // Penilaian Instruktur
+        'teacher_soft_details' => 'array', // Penilaian Guru
+        'soft_skill_details' => 'array',   // (Legacy/Cadangan)
+        'is_completed' => 'boolean',
     ];
 
     public function user()

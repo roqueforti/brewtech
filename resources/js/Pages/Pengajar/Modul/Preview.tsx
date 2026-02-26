@@ -51,7 +51,7 @@ export default function TeacherPreview({ module }: any) {
             window.speechSynthesis.cancel();
             if (isSpeaking && text === "") { setIsSpeaking(false); return; }
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'id-ID'; utterance.rate = 0.9;
+            utterance.lang = 'id-ID'; utterance.rate = 0.85;
             utterance.onstart = () => setIsSpeaking(true);
             utterance.onend = () => setIsSpeaking(false);
             window.speechSynthesis.speak(utterance);

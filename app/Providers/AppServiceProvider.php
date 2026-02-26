@@ -18,12 +18,20 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
+public function boot(): void
     {
-        // Tambahkan logika ini:
-        // Jika sedang di production ATAU URL mengandung 'trycloudflare', paksa HTTPS
-        if($this->app->environment('production') || str_contains(request()->getHost(), 'trycloudflare.com')) {
+        // ✅ PAKSA HTTPS DI PRODUCTION
+        if (config('app.env') === 'production' || str_contains(config('app.url'), 'https')) {
             URL::forceScheme('https');
         }
     }
+
+//     public function boot(): void
+// {
+//     // ✅ UBAH MENJADI SEPERTI INI:
+//     // Hanya paksa HTTPS jika environment adalah 'production'
+//     if ($this->app->environment('production')) {
+//         \Illuminate\Support\Facades\URL::forceScheme('https');
+//     }
+// }
 }
